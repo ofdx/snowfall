@@ -19,8 +19,14 @@ static inline char byte_enc(char in){
 	switch(out){
 		case '"':
 			return '{';
+		case '?':
+			return '|';
 		case '\\':
 			return '}';
+		case '<':
+			return 'x';
+		case '>':
+			return 'y';
 	}
 
 	return out;
@@ -34,8 +40,17 @@ static inline char byte_dec(char in){
 		case '{':
 			out = '"';
 			break;
+		case '|':
+			out = '?';
+			break;
 		case '}':
 			out = '\\';
+			break;
+		case 'x':
+			out = '<';
+			break;
+		case 'y':
+			out = '>';
 			break;
 	}
 
