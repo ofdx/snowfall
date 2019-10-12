@@ -53,7 +53,9 @@ int main(int argc, char **argv){
 	SDL_Renderer *rend = SDL_CreateRenderer(win, -1, 0);
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
-	SDL_Texture *texture = textureFromBmp(rend, "./spacebun.bmp");
+	SDL_Texture *tx1 = textureFromBmp(rend, "./living/1.bmp");
+	SDL_Texture *tx2 = textureFromBmp(rend, "./spacebun.bmp");
+	SDL_Texture *texture = tx1;
 
 	SDL_Rect fillRect = { screen_width / 2 - 64, screen_height / 2 - 64, 128, 128 };
 	SDL_Rect outlRect = { screen_width / 2 - 80, screen_height / 2 - 80, 160, 160 };
@@ -63,6 +65,21 @@ int main(int argc, char **argv){
 	double offset_y = 0.0;
 
 	map<int, bool> keys;
+
+	// FIXME debug - show help at startup
+	{
+		SDL_Texture *tx_help = textureFromBmp(rend, "./help.bmp");
+		SDL_RenderCopy(rend, tx_help, NULL, NULL);
+		SDL_RenderPresent(rend);
+
+		// Wait for a keypress.
+		while(1){
+			SDL_WaitEvent(&event);
+
+			if(event.type == SDL_KEYDOWN)
+				break;
+		}
+	}
 
 	while(1){
 		// Check for an event without waiting.
@@ -128,6 +145,12 @@ int main(int argc, char **argv){
 		offset_x += delta_x;
 		offset_y += delta_y;
 
+		// Swap textures just for fun.
+		if(keys[SDLK_q])
+			texture = tx1;
+		if(keys[SDLK_e])
+			texture = tx2;
+
 
 		// Put the background image up.
 		SDL_RenderCopy(rend, texture, NULL, NULL);
@@ -157,10 +180,6 @@ int main(int argc, char **argv){
 
 quit:
 	// Clean up and close SDL library.
-	SDL_DestroyTexture(texture);
-	SDL_DestroyRenderer(rend);
-	SDL_DestroyWindow(win);
-
 	SDL_Quit();
 
 	return 0;
