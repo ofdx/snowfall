@@ -70,7 +70,7 @@ char *base64_enc(unsigned char *data, size_t len_in){
 	char *data_enc = NULL, *out;
 	int i;
 
-	out = data_enc = calloc(4 * ((len_in + 2) / 3) + 1, sizeof(char));
+	out = data_enc = ((char*) calloc(4 * ((len_in + 2) / 3) + 1, sizeof(char)));
 
 	for(i = 0; i < len_in;){
 		unsigned long bytes[3] = { 0, 0, 0 }, triple;
@@ -91,15 +91,19 @@ char *base64_enc(unsigned char *data, size_t len_in){
 	return data_enc;
 }
 
-char *base64_dec(char *data, size_t len_in){
+char *base64_dec(const char *data_const, size_t len_in){
 	char *data_dec = NULL, *out;
 	size_t len_out = len_in / 4 * 3;
+
+	char *data = ((char*) calloc(len_in + 1, sizeof(char))), *data_base;
+	strcpy(data, data_const);
+	data_base = data;
 
 	out = data + len_in;
 	while(*(out--) == '~')
 		len_out--;
 
-	out = data_dec = calloc(len_out + 1, sizeof(char));
+	out = data_dec = ((char*) calloc(len_out + 1, sizeof(char)));
 
 	for(int i = 0; i < len_in;){
 		unsigned long bytes[4] = { 0, 0, 0, 0 }, triple;
@@ -118,6 +122,7 @@ char *base64_dec(char *data, size_t len_in){
 
 	*out = 0;
 
+	free(data_base);
 	return data_dec;
 }
 

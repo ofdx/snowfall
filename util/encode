@@ -1,0 +1,29 @@
+#!/bin/bash
+
+OUTFILE=build/assetblob
+
+set -e
+if [ -e 'assets' ] && [ -e 'build/encoder' ]; then
+	cd assets
+
+	cat > "../$OUTFILE" <<-EOF
+	/*
+		Auto-generated asset file.
+	*/
+	EOF
+
+	for F in $(find); do
+		if [ ! -d "$F" ]; then
+			cat >> "../$OUTFILE" <<-EOF
+				FileLoader::load("$F", new FileLoader(
+					$(stat -c '%s' "$F"),
+					$(../build/encoder "$F")
+				));
+			EOF
+		fi
+	done
+
+	cat >> "../$OUTFILE" <<-EOF
+		FileLoader::decode_all();
+	EOF
+fi

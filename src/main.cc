@@ -9,7 +9,7 @@ using namespace std;
 #include "loader.h"
 
 SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn){
-	SDL_Surface *sf = SDL_LoadBMP(fn);
+	SDL_Surface *sf = FileLoader::get(fn)->surface();
 	SDL_Texture *tx = SDL_CreateTextureFromSurface(rend, sf);
 	SDL_FreeSurface(sf);
 
@@ -49,7 +49,7 @@ int main(int argc, char **argv){
 	SDL_Renderer *rend = SDL_CreateRenderer(win, -1, 0);
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 
-	SDL_Texture *texture = textureFromBmp(rend, "living.bmp");
+	SDL_Texture *texture = textureFromBmp(rend, "./living.bmp");
 
 	SDL_Rect fillRect = { screen_width / 2 - 64, screen_height / 2 - 64, 128, 128 };
 	SDL_Rect outlRect = { screen_width / 2 - 80, screen_height / 2 - 80, 160, 160 };
