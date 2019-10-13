@@ -4,6 +4,9 @@
 
 #include <string>
 
+#define SCREEN_WIDTH 256
+#define SCREEN_HEIGHT 150
+
 using namespace std;
 
 #include "loader.h"
@@ -44,21 +47,22 @@ int main(int argc, char **argv){
 		return -1;
 	}
 
-	int screen_width = 1024;
-	int screen_height = 600;
+	// FIXME - automatically set default value based on desktop resolution
+	int render_scale = 5;
 
-	SDL_Window *win = SDL_CreateWindow("picogamo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screen_width, screen_height, SDL_WINDOW_SHOWN);
+	SDL_Window *win = SDL_CreateWindow("picogamo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH * render_scale, SCREEN_HEIGHT * render_scale, SDL_WINDOW_SHOWN);
 
 	// Create a renderer for the window we'll draw everything to.
 	SDL_Renderer *rend = SDL_CreateRenderer(win, -1, 0);
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
+	SDL_RenderSetScale(rend, render_scale, render_scale);
 
 	SDL_Texture *tx1 = textureFromBmp(rend, "./living/1.bmp");
 	SDL_Texture *tx2 = textureFromBmp(rend, "./spacebun.bmp");
 	SDL_Texture *texture = tx1;
 
-	SDL_Rect fillRect = { screen_width / 2 - 64, screen_height / 2 - 64, 128, 128 };
-	SDL_Rect outlRect = { screen_width / 2 - 80, screen_height / 2 - 80, 160, 160 };
+	SDL_Rect fillRect = { SCREEN_WIDTH / 2 - 16, SCREEN_HEIGHT / 2 - 16, 32, 32 };
+	SDL_Rect outlRect = { SCREEN_WIDTH / 2 - 20, SCREEN_HEIGHT / 2 - 20, 40, 40 };
 	SDL_Rect holder = {};
 
 	double offset_x = 0.0;
@@ -133,10 +137,10 @@ int main(int argc, char **argv){
 			else
 				offset_y = 0;
 		} else {
-			if((offset_x < -screen_width) || (offset_x > screen_width))
+			if((offset_x < -SCREEN_WIDTH) || (offset_x > SCREEN_WIDTH))
 				delta_x = 0;
 
-			if((offset_y < -screen_height) || (offset_y > screen_height))
+			if((offset_y < -SCREEN_HEIGHT) || (offset_y > SCREEN_HEIGHT))
 				delta_y = 0;
 		}
 
@@ -169,9 +173,9 @@ int main(int argc, char **argv){
 
 		// Draw points.
 		SDL_SetRenderDrawColor(rend, 0x20, 0xD0, 0xD0, 0xFF);
-		for(int i = 0; i < screen_height; i += 4){
-			SDL_RenderDrawPoint(rend, screen_width / 2 - 20, i);
-			SDL_RenderDrawPoint(rend, screen_width / 2 + 20, i);
+		for(int i = 0; i < SCREEN_WIDTH; i += 4){
+			SDL_RenderDrawPoint(rend, i, SCREEN_HEIGHT / 2 - 22);
+			SDL_RenderDrawPoint(rend, i, SCREEN_HEIGHT / 2 + 21);
 		}
 
 		SDL_RenderPresent(rend);
