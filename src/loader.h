@@ -2,7 +2,7 @@
 
 class FileLoader {
 	size_t size_raw;
-	char *data_raw;
+	const char *data_raw;
 	string data;
 
 	static map<string, FileLoader*> assets;
@@ -13,11 +13,27 @@ public:
 	FileLoader(size_t size_raw, string data){
 		this->size_raw = size_raw;
 		this->data = data;
+
+		this->sf = NULL;
 	}
 
 	// Get a surface for this asset if it's an image.
 	SDL_Surface *surface(){
+		if(!sf)
+			sf = SDL_LoadBMP_RW(rwops(), 0);
+
 		return this->sf;
+	}
+
+	SDL_RWops *rwops(){
+		if(!rw)
+			rw = SDL_RWFromMem(((void*) data_raw), size_raw);
+
+		return rw;
+	}
+
+	const char *text(){
+		return data_raw;
 	}
 
 	static void load(string fname, FileLoader *fl);
@@ -44,7 +60,5 @@ void FileLoader::decode_all(){
 		FileLoader *fl = x.second;
 
 		fl->data_raw = base64_dec(fl->data.c_str(), strlen(fl->data.c_str()));
-		fl->rw = SDL_RWFromMem(((void*) fl->data_raw), fl->size_raw);
-		fl->sf = SDL_LoadBMP_RW(fl->rw, 0);
 	}
 }

@@ -79,6 +79,8 @@ int main(int argc, char **argv){
 			if(event.type == SDL_KEYDOWN)
 				break;
 		}
+
+		cout << FileLoader::get("./desc.txt")->text();
 	}
 
 	while(1){
