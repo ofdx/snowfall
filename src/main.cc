@@ -47,8 +47,18 @@ int main(int argc, char **argv){
 		return -1;
 	}
 
-	// FIXME - automatically set default value based on desktop resolution
 	int render_scale = 5;
+
+	// Automatically set default value based on desktop resolution.
+	{
+		SDL_DisplayMode mode;
+		if(!SDL_GetDesktopDisplayMode(0, &mode)){
+			int width = mode.w / SCREEN_WIDTH;
+			int height = mode.h / SCREEN_HEIGHT;
+
+			render_scale = ((width > height) ? height : width) - 1;
+		}
+	}
 
 	SDL_Window *win = SDL_CreateWindow("picogamo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH * render_scale, SCREEN_HEIGHT * render_scale, SDL_WINDOW_SHOWN);
 
@@ -70,11 +80,23 @@ int main(int argc, char **argv){
 
 	map<int, bool> keys;
 
+	// Intro splash
+	{
+		SDL_Texture *tx_help = textureFromBmp(rend, "./krakcircle.bmp");
+		SDL_RenderCopy(rend, tx_help, NULL, NULL);
+		SDL_RenderPresent(rend);
+
+		SDL_Delay(3000);
+	}
+
 	// FIXME debug - show help at startup
 	{
 		SDL_Texture *tx_help = textureFromBmp(rend, "./help.bmp");
 		SDL_RenderCopy(rend, tx_help, NULL, NULL);
 		SDL_RenderPresent(rend);
+
+		// Eat up enqueued events.
+		while(SDL_PollEvent(&event));
 
 		// Wait for a keypress.
 		while(1){
