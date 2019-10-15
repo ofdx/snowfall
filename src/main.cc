@@ -1,8 +1,9 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <map>
-
 #include <string>
+#include <list>
+#include <cmath>
 
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 150
@@ -10,6 +11,7 @@
 using namespace std;
 
 #include "loader.h"
+#include "snow.h"
 
 SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn){
 	FileLoader *fl = FileLoader::get(fn);
@@ -69,7 +71,8 @@ int main(int argc, char **argv){
 
 	SDL_Texture *tx1 = textureFromBmp(rend, "./living/1.bmp");
 	SDL_Texture *tx2 = textureFromBmp(rend, "./spacebun.bmp");
-	SDL_Texture *texture = tx1;
+	SDL_Texture *tx3 = textureFromBmp(rend, "./jeep.bmp");
+	SDL_Texture *texture = tx3;
 
 	SDL_Rect fillRect = { SCREEN_WIDTH / 2 - 16, SCREEN_HEIGHT / 2 - 16, 32, 32 };
 	SDL_Rect outlRect = { SCREEN_WIDTH / 2 - 20, SCREEN_HEIGHT / 2 - 20, 40, 40 };
@@ -109,7 +112,19 @@ int main(int argc, char **argv){
 		cout << FileLoader::get("./desc.txt")->text();
 	}
 
+	SnowScene *snow = new SnowScene(
+		rend,
+		SCREEN_WIDTH, SCREEN_HEIGHT,
+		10, 50, 40,
+		-90, 10,
+		150
+	);
+
+	int ticks_last = SDL_GetTicks();
 	while(1){
+		int ticks_now = SDL_GetTicks();
+		const int ticks = ticks_now - ticks_last;
+
 		// Check for an event without waiting.
 		while(SDL_PollEvent(&event)){
 			switch(event.type){
@@ -178,32 +193,41 @@ int main(int argc, char **argv){
 			texture = tx1;
 		if(keys[SDLK_e])
 			texture = tx2;
+		if(keys[SDLK_1])
+			texture = tx3;
 
 
 		// Put the background image up.
 		SDL_RenderCopy(rend, texture, NULL, NULL);
 
-		// Draw a filled rectangle.
-		SDL_SetRenderDrawColor(rend, 0xD0, 0x20, 0x00, 0x80);
-		rectFloatOffset(holder, fillRect, offset_x * 2.0 / 3.0, offset_y * 2.0 / 3.0);
-		SDL_RenderFillRect(rend, &holder);
+		if(texture == tx3)
+			snow->update(ticks);
+		else {
+			// Draw a filled rectangle.
+			SDL_SetRenderDrawColor(rend, 0xD0, 0x20, 0x00, 0x80);
+			rectFloatOffset(holder, fillRect, offset_x * 2.0 / 3.0, offset_y * 2.0 / 3.0);
+			SDL_RenderFillRect(rend, &holder);
 
-		// Draw a line rectangle.
-		SDL_SetRenderDrawColor(rend, 0xD0, 0x20, 0xD0, 0xD0);
-		rectFloatOffset(holder, outlRect, offset_x, offset_y);
-		SDL_RenderDrawRect(rend, &holder);
+			// Draw a line rectangle.
+			SDL_SetRenderDrawColor(rend, 0xD0, 0x20, 0xD0, 0xD0);
+			rectFloatOffset(holder, outlRect, offset_x, offset_y);
+			SDL_RenderDrawRect(rend, &holder);
 
-		// Draw points.
-		SDL_SetRenderDrawColor(rend, 0x20, 0xD0, 0xD0, 0xFF);
-		for(int i = 0; i < SCREEN_WIDTH; i += 4){
-			SDL_RenderDrawPoint(rend, i, SCREEN_HEIGHT / 2 - 22);
-			SDL_RenderDrawPoint(rend, i, SCREEN_HEIGHT / 2 + 21);
+			// Draw points.
+			SDL_SetRenderDrawColor(rend, 0x20, 0xD0, 0xD0, 0xFF);
+			for(int i = 0; i < SCREEN_WIDTH; i += 4){
+				SDL_RenderDrawPoint(rend, i, SCREEN_HEIGHT / 2 - 22);
+				SDL_RenderDrawPoint(rend, i, SCREEN_HEIGHT / 2 + 21);
+			}
 		}
 
 		SDL_RenderPresent(rend);
 
 		// Delay to limit to approximately 60 fps.
 		SDL_Delay(1000 / 60);
+
+		// Update tick counter.
+		ticks_last = ticks_now;
 	}
 
 quit:
