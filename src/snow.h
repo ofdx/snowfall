@@ -1,4 +1,4 @@
-class SnowScene {
+class SnowScene : public ParticleEffect {
 	class SnowFlake {
 		float cx, cy;
 		float speed;
@@ -10,8 +10,8 @@ class SnowScene {
 		SnowScene *scene;
 
 		void reset(bool randomY){
-			cx = (rand() % scene->w);
-			cy = (randomY ? (rand() % scene->h) : 0);
+			cx = (rand() % scene->area.w);
+			cy = ((randomY ? (rand() % scene->area.h) : 0) + scene->area.y);
 			speed = (rand() % (scene->speed_max - scene->speed_min) + scene->speed_min);
 			offset = (rand() % ((int)(2 * 3.14159f * 1000))) / 1000.0f;
 			amplitude = (rand() % scene->sway);
@@ -21,10 +21,10 @@ class SnowScene {
 		float sway(){
 			float cx_s = cx + (sin(offset + cy / 100.0f) * amplitude);
 
-			while(cx_s < 0.0f)
-				cx_s += scene->w;
-			while(cx_s > scene->w)
-				cx_s -= scene->w;
+			while(cx_s < scene->area.x)
+				cx_s += scene->area.w;
+			while(cx_s > (scene->area.x + scene->area.w))
+				cx_s -= scene->area.w;
 
 			return cx_s;
 		}
@@ -39,7 +39,7 @@ class SnowScene {
 			cy += (speed + cos(angle) * scene->wind_force) * time;
 			cx += (((rand() % 1000) / 1000.0f) + sin(angle) * scene->wind_force) * time;
 
-			if(cy > (scene->h + 2)){
+			if(cy > (scene->area.y + scene->area.h)){
 				reset(false);
 			} else {
 				SDL_SetRenderDrawColor(scene->rend, lum, lum, lum, 0xa0);
@@ -48,9 +48,6 @@ class SnowScene {
 		}
 	};
 
-	SDL_Renderer *rend;
-
-	int w, h;
 	int speed_min, speed_max;
 	int sway;
 	int wind_angle, wind_force;
@@ -62,14 +59,11 @@ class SnowScene {
 public:
 	SnowScene(
 		SDL_Renderer *rend,
-		int w, int h,
+		SDL_Rect area,
 		int speed_min, int speed_max, int sway,
 		int wind_angle, int wind_force,
 		int count
-	){
-		this->rend = rend;
-		this->w = w;
-		this->h = h;
+	) : ParticleEffect(rend, area) {
 		this->speed_min = speed_min;
 		this->speed_max = speed_max;
 		this->sway = sway;

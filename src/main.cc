@@ -11,6 +11,7 @@
 using namespace std;
 
 #include "loader.h"
+#include "particle.h"
 #include "snow.h"
 
 SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn){
@@ -112,9 +113,9 @@ int main(int argc, char **argv){
 		cout << FileLoader::get("./desc.txt")->text();
 	}
 
-	SnowScene *snow = new SnowScene(
+	ParticleEffect *snow = new SnowScene(
 		rend,
-		SCREEN_WIDTH, SCREEN_HEIGHT,
+		(SDL_Rect){ 20,20, SCREEN_WIDTH-40,SCREEN_HEIGHT-40 },
 		10, 50, 40,
 		-90, 10,
 		150
