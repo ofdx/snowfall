@@ -113,9 +113,10 @@ int main(int argc, char **argv){
 		cout << FileLoader::get("./desc.txt")->text();
 	}
 
+	SDL_Rect snowspace = { 20,20, SCREEN_WIDTH-40,SCREEN_HEIGHT-40 };
 	ParticleEffect *snow = new SnowScene(
 		rend,
-		(SDL_Rect){ 20,20, SCREEN_WIDTH-40,SCREEN_HEIGHT-40 },
+		snowspace,
 		10, 50, 40,
 		-90, 10,
 		150
@@ -201,9 +202,12 @@ int main(int argc, char **argv){
 		// Put the background image up.
 		SDL_RenderCopy(rend, texture, NULL, NULL);
 
-		if(texture == tx3)
+		if(texture == tx3){
+			SDL_SetRenderDrawColor(rend, 0x00, 0xFF, 0x00, 0xA0);
+			SDL_RenderDrawRect(rend, &snowspace);
+
 			snow->update(ticks);
-		else {
+		} else {
 			// Draw a filled rectangle.
 			SDL_SetRenderDrawColor(rend, 0xD0, 0x20, 0x00, 0x80);
 			rectFloatOffset(holder, fillRect, offset_x * 2.0 / 3.0, offset_y * 2.0 / 3.0);
