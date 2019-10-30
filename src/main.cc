@@ -77,11 +77,13 @@ int main(int argc, char **argv){
 	SDL_RenderSetScale(rend, render_scale, render_scale);
 
 	SDL_Texture *tx1 = textureFromBmp(rend, "living/1.bmp");
-	SDL_Texture *tx2 = textureFromBmp(rend, "spacebun.bmp");
+	SDL_Texture *tx2 = textureFromBmp(rend, "garage.bmp");
 	SDL_Texture *tx3 = textureFromBmp(rend, "jeep.bmp");
 	SDL_Texture *texture = tx3;
 
-	SDL_Texture *mouse_tx = textureFromBmp(rend, "mouse/cursor.bmp", true);
+	SDL_Texture *mouse_tx_1 = textureFromBmp(rend, "mouse/cursor.bmp", true);
+	SDL_Texture *mouse_tx_2 = textureFromBmp(rend, "mouse/cursor2.bmp", true);
+	SDL_Texture *mouse_tx = mouse_tx_1;
 
 	SDL_Rect fillRect = { SCREEN_WIDTH / 2 - 16, SCREEN_HEIGHT / 2 - 16, 32, 32 };
 	SDL_Rect outlRect = { SCREEN_WIDTH / 2 - 20, SCREEN_HEIGHT / 2 - 20, 40, 40 };
@@ -163,7 +165,9 @@ int main(int argc, char **argv){
 	);
 
 	// Simple rectangle representing the mouse cursor.
-	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 7, 7 };
+	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 14, 14 };
+
+	bool render_reticule = true;
 
 	int ticks_last = SDL_GetTicks();
 	while(1){
@@ -247,6 +251,13 @@ int main(int argc, char **argv){
 		if(keys[SDLK_1])
 			texture = tx3;
 
+		if(keys[SDLK_2])
+			mouse_tx = mouse_tx_2;
+		if(keys[SDLK_3])
+			mouse_tx = mouse_tx_1;
+
+		if(keys[SDLK_r])
+			render_reticule = !render_reticule;
 
 		// Put the background image up.
 		SDL_RenderCopy(rend, texture, NULL, NULL);
@@ -256,7 +267,9 @@ int main(int argc, char **argv){
 			SDL_RenderDrawRect(rend, &snowspace);
 
 			snow->update(ticks);
-		} else {
+		}
+
+		if(render_reticule){
 			// Draw a filled rectangle.
 			SDL_SetRenderDrawColor(rend, 0xD0, 0x20, 0x00, 0x80);
 			rectFloatOffset(holder, fillRect, offset_x * 2.0 / 3.0, offset_y * 2.0 / 3.0);
