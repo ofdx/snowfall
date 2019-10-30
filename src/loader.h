@@ -20,7 +20,7 @@ public:
 	// Get a surface for this asset if it's an image.
 	SDL_Surface *surface(){
 		if(!sf)
-			sf = SDL_LoadBMP_RW(rwops(), 0);
+			sf = IMG_Load_RW(rwops(), 0);
 
 		return this->sf;
 	}

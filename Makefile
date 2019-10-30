@@ -29,9 +29,9 @@ build/encoder: src/encoder.c src/base64.h
 win: build/picogamo.exe
 
 build/picogamo.exe: build/picogamo
-	x86_64-w64-mingw32-g++ $(GCC_ARGS) -static -o build/picogamo.exe src/main.cc -Lx86_64/lib -Ix86_64/include -lmingw32 -lSDL2main -lSDL2 -mwindows  -Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid -static-libgcc -static-libstdc++
+	x86_64-w64-mingw32-g++ $(GCC_ARGS) -static -o build/picogamo.exe src/main.cc -Lx86_64/lib -Lx86_64_image/lib -Ix86_64/include/SDL2 -Ix86_64_image/include/SDL2 -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -mwindows  -Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid -static-libgcc -static-libstdc++
 
 
 # Build the game for 64-bit Linux
 build/picogamo: src/main.cc src/loader.h src/base64.h build/assetblob src/snow.h src/particle.h
-	g++ $(GCC_ARGS) -no-pie -lSDL2 -o build/picogamo src/main.cc
+	g++ $(GCC_ARGS) -no-pie -I/usr/include/SDL2 -lSDL2 -lSDL2_image -o build/picogamo src/main.cc
