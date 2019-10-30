@@ -1,5 +1,4 @@
-#include <SDL.h>
-#include <SDL_image.h>
+#include <SDL2/SDL.h>
 #include <iostream>
 #include <map>
 #include <string>
@@ -15,16 +14,21 @@ using namespace std;
 #include "particle.h"
 #include "snow.h"
 
-SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn){
+SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn, bool trans){
 	FileLoader *fl = FileLoader::get(fn);
 	if(!fl)
 		return NULL;
 
 	SDL_Surface *sf = fl->surface();
+	if(sf && trans)
+		SDL_SetColorKey(sf, SDL_TRUE, SDL_MapRGB(sf->format, 0xff, 0x00, 0xff));
+
 	SDL_Texture *tx = SDL_CreateTextureFromSurface(rend, sf);
-	SDL_FreeSurface(sf);
 
 	return tx;
+}
+SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn){
+	return textureFromBmp(rend, fn, false);
 }
 
 void rectSum(SDL_Rect &holder, SDL_Rect a, SDL_Rect b){
@@ -72,10 +76,12 @@ int main(int argc, char **argv){
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 	SDL_RenderSetScale(rend, render_scale, render_scale);
 
-	SDL_Texture *tx1 = textureFromBmp(rend, "./living/1.bmp");
-	SDL_Texture *tx2 = textureFromBmp(rend, "./spacebun.bmp");
-	SDL_Texture *tx3 = textureFromBmp(rend, "./jeep.bmp");
+	SDL_Texture *tx1 = textureFromBmp(rend, "living/1.bmp");
+	SDL_Texture *tx2 = textureFromBmp(rend, "spacebun.bmp");
+	SDL_Texture *tx3 = textureFromBmp(rend, "jeep.bmp");
 	SDL_Texture *texture = tx3;
+
+	SDL_Texture *mouse_tx = textureFromBmp(rend, "mouse/cursor.bmp", true);
 
 	SDL_Rect fillRect = { SCREEN_WIDTH / 2 - 16, SCREEN_HEIGHT / 2 - 16, 32, 32 };
 	SDL_Rect outlRect = { SCREEN_WIDTH / 2 - 20, SCREEN_HEIGHT / 2 - 20, 40, 40 };
@@ -88,7 +94,7 @@ int main(int argc, char **argv){
 
 	// Intro splash
 	{
-		SDL_Texture *tx_help = textureFromBmp(rend, "./krakcircle.bmp");
+		SDL_Texture *tx_help = textureFromBmp(rend, "krakcircle.bmp");
 
 		ParticleEffect *snow_left = new SnowScene(
 			rend,
@@ -129,7 +135,7 @@ int main(int argc, char **argv){
 
 	// FIXME debug - show help at startup
 	{
-		SDL_Texture *tx_help = textureFromBmp(rend, "./help.bmp");
+		SDL_Texture *tx_help = textureFromBmp(rend, "help.bmp");
 		SDL_RenderCopy(rend, tx_help, NULL, NULL);
 		SDL_RenderPresent(rend);
 
@@ -144,7 +150,7 @@ int main(int argc, char **argv){
 				break;
 		}
 
-		cout << FileLoader::get("./desc.txt")->text();
+		cout << FileLoader::get("desc.txt")->text();
 	}
 
 	SDL_Rect snowspace = { 20,20, SCREEN_WIDTH-40,SCREEN_HEIGHT-40 };
@@ -157,7 +163,7 @@ int main(int argc, char **argv){
 	);
 
 	// Simple rectangle representing the mouse cursor.
-	SDL_Rect mouse_cursor = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 3, 7 };
+	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 7, 7 };
 
 	int ticks_last = SDL_GetTicks();
 	while(1){
@@ -270,8 +276,7 @@ int main(int argc, char **argv){
 		}
 
 		// Draw the mouse cursor
-		SDL_SetRenderDrawColor(rend, 0xff, 0xff, 0xff, 0x80);
-		SDL_RenderFillRect(rend, &mouse_cursor);
+		SDL_RenderCopy(rend, mouse_tx, NULL, &mouse_cursor);
 
 		SDL_RenderPresent(rend);
 

@@ -15,7 +15,7 @@ if [ -e 'assets' ] && [ -e 'build/encoder' ]; then
 	for F in $(find); do
 		if [ ! -d "$F" ]; then
 			cat >> "../$OUTFILE" <<-EOF
-				FileLoader::load("$F", new FileLoader(
+				FileLoader::load("${F#"./"}", new FileLoader(
 					$(stat -c '%s' "$F"),
 					$(../build/encoder "$F")
 				));
