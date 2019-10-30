@@ -49,6 +49,7 @@ int main(int argc, char **argv){
 		cout << "Failed to init SDL: " << SDL_GetError() << endl;
 		return -1;
 	}
+	SDL_ShowCursor(SDL_DISABLE);
 
 	int render_scale = 5;
 
@@ -87,10 +88,42 @@ int main(int argc, char **argv){
 	// Intro splash
 	{
 		SDL_Texture *tx_help = textureFromBmp(rend, "./krakcircle.bmp");
-		SDL_RenderCopy(rend, tx_help, NULL, NULL);
-		SDL_RenderPresent(rend);
 
-		SDL_Delay(3000);
+		ParticleEffect *snow_left = new SnowScene(
+			rend,
+			(SDL_Rect){0,0, 40, SCREEN_HEIGHT},
+			10, 50, 40,
+			90, 10,
+			30
+		);
+
+		ParticleEffect *snow_right = new SnowScene(
+			rend,
+			(SDL_Rect){SCREEN_WIDTH - 40, 0, 40, SCREEN_HEIGHT},
+			10, 50, 40,
+			-90, 10,
+			30
+		);
+
+		int ticks_start = SDL_GetTicks();
+		int ticks_prev = ticks_start;
+		while(1){
+			int ticks_now = SDL_GetTicks();
+			int ticks = (ticks_now - ticks_prev);
+			ticks_prev = ticks_now;
+
+			SDL_RenderCopy(rend, tx_help, NULL, NULL);
+
+			snow_left->update(ticks);
+			snow_right->update(ticks);
+
+			SDL_RenderPresent(rend);
+
+			if(ticks_now - ticks_start > 3000)
+				break;
+
+			SDL_Delay(1000 / 60);
+		}
 	}
 
 	// FIXME debug - show help at startup
@@ -122,6 +155,9 @@ int main(int argc, char **argv){
 		150
 	);
 
+	// Simple rectangle representing the mouse cursor.
+	SDL_Rect mouse_cursor = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 3, 7 };
+
 	int ticks_last = SDL_GetTicks();
 	while(1){
 		int ticks_now = SDL_GetTicks();
@@ -139,6 +175,12 @@ int main(int argc, char **argv){
 					break;
 				case SDL_KEYDOWN:
 					keys[event.key.keysym.sym] = true;
+					break;
+
+				// Move cursor to point position.
+				case SDL_MOUSEMOTION:
+					mouse_cursor.x = event.motion.x / render_scale;
+					mouse_cursor.y = event.motion.y / render_scale;
 					break;
 			}
 		}
@@ -225,6 +267,10 @@ int main(int argc, char **argv){
 				SDL_RenderDrawPoint(rend, i, SCREEN_HEIGHT / 2 + 21);
 			}
 		}
+
+		// Draw the mouse cursor
+		SDL_SetRenderDrawColor(rend, 0xff, 0xff, 0xff, 0x80);
+		SDL_RenderFillRect(rend, &mouse_cursor);
 
 		SDL_RenderPresent(rend);
 
