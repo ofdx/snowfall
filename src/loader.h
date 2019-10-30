@@ -14,6 +14,7 @@ public:
 		this->size_raw = size_raw;
 		this->data = data;
 
+		this->rw = NULL;
 		this->sf = NULL;
 	}
 
