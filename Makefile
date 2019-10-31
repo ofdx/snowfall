@@ -1,4 +1,4 @@
-GCC_ARGS=--std=c++11 -s -Ibuild/
+GCC_ARGS=-Wall --std=c++11 -s -Ibuild/
 
 all: build build/assetblob build/picogamo win
 

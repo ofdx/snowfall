@@ -83,7 +83,7 @@ void base64_toquoted(char *data, FILE *stream){
 
 char *base64_enc(unsigned char *data, size_t len_in){
 	char *data_enc = NULL, *out;
-	int i;
+	size_t i;
 
 	out = data_enc = ((char*) calloc(4 * ((len_in + 2) / 3) + 1, sizeof(char)));
 
@@ -120,7 +120,7 @@ char *base64_dec(const char *data_const, size_t len_in){
 
 	out = data_dec = ((char*) calloc(len_out + 1, sizeof(char)));
 
-	for(int i = 0; i < len_in;){
+	for(size_t i = 0; i < len_in;){
 		unsigned long bytes[4] = { 0, 0, 0, 0 }, triple;
 
 		for(int j = 0; j < 4; j++, i++, data++)
