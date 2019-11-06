@@ -12,4 +12,5 @@ public:
 	virtual int update(int ticks){
 		return 0;
 	}
+	virtual ~ParticleEffect(){}
 };

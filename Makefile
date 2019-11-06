@@ -33,5 +33,5 @@ build/picogamo.exe: build/picogamo
 
 
 # Build the game for 64-bit Linux
-build/picogamo: src/main.cc src/loader.h src/base64.h build/assetblob src/snow.h src/particle.h
+build/picogamo: src/main.cc src/loader.h src/base64.h build/assetblob src/snow.h src/particle.h src/scene.h src/scenes/*
 	g++ $(GCC_ARGS) -no-pie -I/usr/include -lSDL2 -o build/picogamo src/main.cc

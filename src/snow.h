@@ -1,4 +1,4 @@
-class SnowScene : public ParticleEffect {
+class SnowEffect : public ParticleEffect {
 	class SnowFlake {
 		float cx, cy;
 		float speed;
@@ -7,7 +7,7 @@ class SnowScene : public ParticleEffect {
 
 		char lum;
 
-		SnowScene *scene;
+		SnowEffect *scene;
 
 		void reset(bool randomY){
 			cx = (rand() % scene->area.w);
@@ -30,7 +30,7 @@ class SnowScene : public ParticleEffect {
 		}
 
 	public:
-		SnowFlake(SnowScene *scene, bool randomY){
+		SnowFlake(SnowEffect *scene, bool randomY){
 			this->scene = scene;
 			reset(randomY);
 		}
@@ -57,7 +57,7 @@ class SnowScene : public ParticleEffect {
 
 	float ticks;
 public:
-	SnowScene(
+	SnowEffect(
 		SDL_Renderer *rend,
 		SDL_Rect area,
 		int speed_min, int speed_max, int sway,
@@ -75,6 +75,13 @@ public:
 			flakes.push_front(new SnowFlake(this, true));
 
 		ticks = (SDL_GetTicks() / 1000.0f);
+	}
+
+	~SnowEffect(){
+		for(auto flake : flakes)
+			delete flake;
+
+		flakes.empty();
 	}
 
 	int update(int ticks){

@@ -11,39 +11,19 @@
 using namespace std;
 
 #include "loader.h"
+#include "utility.h"
+
 #include "particle.h"
 #include "snow.h"
 
-SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn, bool trans){
-	FileLoader *fl = FileLoader::get(fn);
-	if(!fl)
-		return NULL;
+#include "scene.h"
 
-	SDL_Surface *sf = fl->surface();
-	if(sf && trans)
-		SDL_SetColorKey(sf, SDL_TRUE, SDL_MapRGB(sf->format, 0xff, 0x00, 0xff));
+#include "scenes/intro.h"
+#include "scenes/help.h"
 
-	SDL_Texture *tx = SDL_CreateTextureFromSurface(rend, sf);
-
-	return tx;
-}
-SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn){
-	return textureFromBmp(rend, fn, false);
-}
-
-void rectSum(SDL_Rect &holder, SDL_Rect a, SDL_Rect b){
-	holder.x = (a.x + b.x);
-	holder.y = (a.y + b.y);
-	holder.w = (a.w + b.w);
-	holder.h = (a.h + b.h);
-}
-void rectFloatOffset(SDL_Rect &holder, SDL_Rect rect, double x, double y){
-	holder.x = (int)(rect.x + x);
-	holder.y = (int)(rect.y + y);
-	holder.w = rect.w;
-	holder.h = rect.h;
-}
-
+#include "scenes/living.h"
+#include "scenes/garage.h"
+#include "scenes/jeep.h"
 
 int main(int argc, char **argv){
 #include "assetblob"
@@ -76,11 +56,6 @@ int main(int argc, char **argv){
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 	SDL_RenderSetScale(rend, render_scale, render_scale);
 
-	SDL_Texture *tx1 = textureFromBmp(rend, "living/1.bmp");
-	SDL_Texture *tx2 = textureFromBmp(rend, "garage.bmp");
-	SDL_Texture *tx3 = textureFromBmp(rend, "jeep.bmp");
-	SDL_Texture *texture = tx3;
-
 	SDL_Texture *mouse_tx_1 = textureFromBmp(rend, "mouse/cursor.bmp", true);
 	SDL_Texture *mouse_tx_2 = textureFromBmp(rend, "mouse/cursor2.bmp", true);
 	SDL_Texture *mouse_tx = mouse_tx_1;
@@ -94,37 +69,19 @@ int main(int argc, char **argv){
 
 	map<int, bool> keys;
 
+	Scene *scene = new IntroSplashScene(rend);
+
 	// Intro splash
 	{
-		SDL_Texture *tx_help = textureFromBmp(rend, "krakcircle.bmp");
-
-		ParticleEffect *snow_left = new SnowScene(
-			rend,
-			(SDL_Rect){0,0, 40, SCREEN_HEIGHT},
-			10, 50, 40,
-			90, 10,
-			30
-		);
-
-		ParticleEffect *snow_right = new SnowScene(
-			rend,
-			(SDL_Rect){SCREEN_WIDTH - 40, 0, 40, SCREEN_HEIGHT},
-			10, 50, 40,
-			-90, 10,
-			30
-		);
-
 		int ticks_start = SDL_GetTicks();
 		int ticks_prev = ticks_start;
+
 		while(1){
 			int ticks_now = SDL_GetTicks();
 			int ticks = (ticks_now - ticks_prev);
 			ticks_prev = ticks_now;
 
-			SDL_RenderCopy(rend, tx_help, NULL, NULL);
-
-			snow_left->update(ticks);
-			snow_right->update(ticks);
+			scene->draw(ticks);
 
 			SDL_RenderPresent(rend);
 
@@ -133,12 +90,16 @@ int main(int argc, char **argv){
 
 			SDL_Delay(1000 / 60);
 		}
+
+		delete scene;
 	}
 
 	// FIXME debug - show help at startup
 	{
-		SDL_Texture *tx_help = textureFromBmp(rend, "help.bmp");
-		SDL_RenderCopy(rend, tx_help, NULL, NULL);
+		scene = new HelpScene(rend);
+		scene->draw(0);
+		delete scene;
+
 		SDL_RenderPresent(rend);
 
 		// Eat up enqueued events.
@@ -151,24 +112,15 @@ int main(int argc, char **argv){
 			if(event.type == SDL_KEYDOWN)
 				break;
 		}
-
-		cout << FileLoader::get("desc.txt")->text();
 	}
-
-	SDL_Rect snowspace = { 20,20, SCREEN_WIDTH-40,SCREEN_HEIGHT-40 };
-	ParticleEffect *snow = new SnowScene(
-		rend,
-		snowspace,
-		10, 50, 40,
-		-90, 10,
-		150
-	);
 
 	// Simple rectangle representing the mouse cursor.
 	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 14, 14 };
 
-	bool render_reticule = true;
+	// Load the first scene.
+	scene = new LivingRoomScene(rend);
 
+	bool render_reticule = true;
 	int ticks_last = SDL_GetTicks();
 	while(1){
 		int ticks_now = SDL_GetTicks();
@@ -244,31 +196,33 @@ int main(int argc, char **argv){
 		offset_y += delta_y;
 
 		// Swap textures just for fun.
-		if(keys[SDLK_q])
-			texture = tx1;
-		if(keys[SDLK_e])
-			texture = tx2;
-		if(keys[SDLK_1])
-			texture = tx3;
+		if(keys[SDLK_q] && !(dynamic_cast<LivingRoomScene*>(scene))){
+			delete scene;
+			scene = new LivingRoomScene(rend);
+		}
+		if(keys[SDLK_e] && !(dynamic_cast<GarageScene*>(scene))){
+			delete scene;
+			scene = new GarageScene(rend);
+		}
+		if(keys[SDLK_1] && !(dynamic_cast<JeepScene*>(scene))){
+			delete scene;
+			scene = new JeepScene(rend);
+		}
 
+		// Test multiple mouse cursors.
 		if(keys[SDLK_2])
 			mouse_tx = mouse_tx_2;
 		if(keys[SDLK_3])
 			mouse_tx = mouse_tx_1;
 
+		// Toggle targeting reticule visibility.
 		if(keys[SDLK_r])
 			render_reticule = !render_reticule;
 
-		// Put the background image up.
-		SDL_RenderCopy(rend, texture, NULL, NULL);
+		// Draw the current scene.
+		scene->draw(ticks);
 
-		if(texture == tx3){
-			SDL_SetRenderDrawColor(rend, 0x00, 0xFF, 0x00, 0xA0);
-			SDL_RenderDrawRect(rend, &snowspace);
-
-			snow->update(ticks);
-		}
-
+		// Draw the targeting reticule.
 		if(render_reticule){
 			// Draw a filled rectangle.
 			SDL_SetRenderDrawColor(rend, 0xD0, 0x20, 0x00, 0x80);
@@ -291,6 +245,7 @@ int main(int argc, char **argv){
 		// Draw the mouse cursor
 		SDL_RenderCopy(rend, mouse_tx, NULL, &mouse_cursor);
 
+		// Flip the display buffer.
 		SDL_RenderPresent(rend);
 
 		// Delay to limit to approximately 60 fps.
