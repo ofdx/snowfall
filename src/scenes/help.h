@@ -11,7 +11,12 @@ public:
 		SDL_DestroyTexture(bg);
 
 		// FIXME debug
-		cout << FileLoader::get("desc.txt")->text();
+		{
+			FileLoader *fl = FileLoader::get("desc.txt");
+
+			if(fl)
+				cout << fl->text();
+		}
 	}
 
 	void draw(int ticks){
