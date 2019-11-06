@@ -1,3 +1,11 @@
+/*
+	FileLoader
+	mperron (2019)
+
+	A class which models game assets. These are instantiated via the
+	automatically generated assetblob file, with base64 encoded asset
+	data.
+*/
 #include "base64.h"
 
 class FileLoader {

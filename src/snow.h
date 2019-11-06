@@ -1,3 +1,10 @@
+/*
+	SnowEffect
+	mperron (2019)
+
+	A very configurable snow ParticleEffect, which showers a constant
+	stream of particles. Adapted from KrakSnow.js.
+*/
 class SnowEffect : public ParticleEffect {
 	class SnowFlake {
 		float cx, cy;

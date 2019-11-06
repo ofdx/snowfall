@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# encode
+# mperron (2019)
+#
+# Create the assetblob file, which contains all assets. For each file in
+# the assets/ directory, base64 encode the data and output C++ code to
+# $OUTFILE containing that data as a string.
 
 OUTFILE=build/assetblob
 
