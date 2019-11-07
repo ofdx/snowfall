@@ -8,16 +8,22 @@ class LivingRoomScene : public Scene {
 		}
 	};
 
+	QuitButton *quitButton;
+
 public:
 	LivingRoomScene(SDL_Renderer *rend) : Scene(rend) {
 		bg = textureFromBmp(rend, "living/1.bmp");
 
-		QuitButton *quitButton = new QuitButton(rend, (SDL_Rect){
+		quitButton = new QuitButton(rend, (SDL_Rect){
 			10, 10,
 			60, 20
 		});
 
 		drawables.push_back(quitButton);
 		clickables.push_back(quitButton);
+	}
+
+	~LivingRoomScene(){
+		delete quitButton;
 	}
 };
