@@ -8,7 +8,9 @@
 class Scene : public Drawable {
 protected:
 	SDL_Texture *bg = NULL;
+
 	list<Drawable*> drawables;
+	list<Clickable*> clickables;
 
 	Scene(SDL_Renderer *rend) : Drawable(rend) {}
 
@@ -26,5 +28,10 @@ public:
 		// Draw any drawable elements (buttons, etc.)
 		for(auto drawable : drawables)
 			drawable->draw(ticks);
+	}
+
+	virtual void check_mouse(SDL_Event event){
+		for(auto clickable : clickables)
+			clickable->check_mouse(event);
 	}
 };

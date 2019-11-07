@@ -9,13 +9,16 @@
 #define SCREEN_HEIGHT 150
 
 using namespace std;
+int render_scale = 5;
 
 #include "loader.h"
 #include "utility.h"
 #include "drawable.h"
 #include "clickable.h"
+
 #include "scene.h"
 #include "particle.h"
+#include "button.h"
 
 // Particle effects
 #include "snow.h"
@@ -37,8 +40,6 @@ int main(int argc, char **argv){
 		return -1;
 	}
 	SDL_ShowCursor(SDL_DISABLE);
-
-	int render_scale = 5;
 
 	// Automatically set default value based on desktop resolution.
 	{
@@ -142,10 +143,14 @@ int main(int argc, char **argv){
 					keys[event.key.keysym.sym] = true;
 					break;
 
-				// Move cursor to point position.
 				case SDL_MOUSEMOTION:
+					// Move cursor to point position.
 					mouse_cursor.x = event.motion.x / render_scale;
 					mouse_cursor.y = event.motion.y / render_scale;
+
+				case SDL_MOUSEBUTTONDOWN:
+				case SDL_MOUSEBUTTONUP:
+					scene->check_mouse(event);
 					break;
 			}
 		}
