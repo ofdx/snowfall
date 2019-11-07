@@ -87,8 +87,6 @@ public:
 	~SnowEffect(){
 		for(auto flake : flakes)
 			delete flake;
-
-		flakes.empty();
 	}
 
 	int update(int ticks){

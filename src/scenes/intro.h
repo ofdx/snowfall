@@ -1,7 +1,5 @@
 class IntroSplashScene : public Scene {
 private:
-	SDL_Texture *bg;
-
 	ParticleEffect *snow_left, *snow_right;
 
 public:
@@ -30,19 +28,12 @@ public:
 			30
 		);
 
+		drawables.push_back(snow_left);
+		drawables.push_back(snow_right);
 	}
 
 	~IntroSplashScene(){
-		SDL_DestroyTexture(bg);
-
 		delete snow_left;
 		delete snow_right;
-	}
-
-	void draw(int ticks){
-		SDL_RenderCopy(rend, bg, NULL, NULL);
-
-		snow_left->update(ticks);
-		snow_right->update(ticks);
 	}
 };

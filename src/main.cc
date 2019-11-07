@@ -12,15 +12,17 @@ using namespace std;
 
 #include "loader.h"
 #include "utility.h"
-
+#include "drawable.h"
+#include "clickable.h"
+#include "scene.h"
 #include "particle.h"
+
+// Particle effects
 #include "snow.h"
 
-#include "scene.h"
-
+// Scenes
 #include "scenes/intro.h"
 #include "scenes/help.h"
-
 #include "scenes/living.h"
 #include "scenes/garage.h"
 #include "scenes/jeep.h"
