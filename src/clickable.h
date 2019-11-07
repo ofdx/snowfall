@@ -24,8 +24,8 @@ public:
 					((event.motion.x / render_scale) >= click_region.x) &&
 					((event.motion.y / render_scale) >= click_region.y) &&
 
-					((event.motion.x / render_scale) <= (click_region.x + click_region.w)) &&
-					((event.motion.y / render_scale) <= (click_region.y + click_region.h))
+					((event.motion.x / render_scale) < (click_region.x + click_region.w)) &&
+					((event.motion.y / render_scale) < (click_region.y + click_region.h))
 				);
 
 				if(mouse_in != was_mouse_in){
