@@ -35,7 +35,7 @@ win: build/picogamo.exe
 build/picogamo.exe: build/picogamo
 	@echo "Building for Windows..."
 	@if [ -n "`which "$(MINGW)"`" ]; then \
-		$(MINGW) $(GCC_ARGS) -static -o build/picogamo.exe src/main.cc -Lx86_64/lib -Ix86_64/include -lmingw32 -lSDL2main -lSDL2 -mwindows  -Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid -static-libgcc -static-libstdc++; \
+		$(MINGW) $(GCC_ARGS) -static -o build/picogamo.exe src/main.cc -Lx86_64/lib -Ix86_64/include -lmingw32 -lSDL2main -lSDL2 -lSDL2_mixer -mwindows  -Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid -static-libgcc -static-libstdc++; \
 	else \
 		touch build/picogamo.exe; \
 		echo "  - No Windows build environment available."; \
@@ -45,4 +45,4 @@ build/picogamo.exe: build/picogamo
 # Build the game for 64-bit Linux
 build/picogamo: src/main.cc build/assetblob src/*.h src/scenes/*
 	@echo "Building for Linux..."
-	@g++ $(GCC_ARGS) -no-pie -I/usr/include -lSDL2 -o build/picogamo src/main.cc
+	@g++ $(GCC_ARGS) -no-pie -I/usr/include -lSDL2 -lSDL2_mixer -o build/picogamo src/main.cc

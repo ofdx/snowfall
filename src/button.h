@@ -32,7 +32,7 @@ public:
 
 	void draw(int ticks){
 		char fill = (down ? 0x40 : 0xb0);
-		char bord = ((hover && !down) ? 0xf0 : 0x70);
+		char bord = (hover ? 0xf0 : 0x70);
 
 		// Fill
 		SDL_SetRenderDrawColor(rend, fill, fill, fill, 0xFF);

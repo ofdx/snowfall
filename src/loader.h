@@ -15,15 +15,14 @@ class FileLoader {
 
 	static map<string, FileLoader*> assets;
 
-	SDL_RWops *rw;
-	SDL_Surface *sf;
+	SDL_RWops *rw = NULL;
+	SDL_Surface *sf = NULL;
+	Mix_Music *mu = NULL;
+	Mix_Chunk *snd = NULL;
 public:
 	FileLoader(size_t size_raw, string data){
 		this->size_raw = size_raw;
 		this->data = data;
-
-		this->rw = NULL;
-		this->sf = NULL;
 	}
 
 	// Get a surface for this asset if it's an image.
@@ -39,6 +38,20 @@ public:
 			rw = SDL_RWFromMem(((void*) data_raw), size_raw);
 
 		return rw;
+	}
+
+	Mix_Music *music(){
+		if(!mu)
+			mu = Mix_LoadMUS_RW(rwops(), 0);
+
+		return mu;
+	}
+
+	Mix_Chunk *sound(){
+		if(!snd)
+			snd = Mix_LoadWAV_RW(rwops(), 0);
+
+		return snd;
 	}
 
 	const char *text(){

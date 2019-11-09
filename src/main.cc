@@ -1,4 +1,6 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
+
 #include <iostream>
 #include <map>
 #include <string>
@@ -40,6 +42,12 @@ int main(int argc, char **argv){
 		return -1;
 	}
 	SDL_ShowCursor(SDL_DISABLE);
+
+	// Enable audio
+	if(Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096)){
+		cout << "Failed to initialize audio." << endl;
+		return -2;
+	}
 
 	// Automatically set default value based on desktop resolution.
 	{
@@ -264,6 +272,7 @@ int main(int argc, char **argv){
 
 quit:
 	// Clean up and close SDL library.
+	Mix_CloseAudio();
 	SDL_Quit();
 
 	return 0;
