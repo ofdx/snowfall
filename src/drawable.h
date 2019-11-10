@@ -1,3 +1,9 @@
+/*
+	Drawable
+	mperron(2019)
+
+	An element which can be rendered in someway onto the screen.
+*/
 class Drawable {
 protected:
 	SDL_Renderer *rend;

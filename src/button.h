@@ -1,3 +1,9 @@
+/*
+	Button
+	mperron (2019)
+
+	A mouse-clickable button, which can perform an action.
+*/
 class Button : public Drawable, public Clickable {
 	bool hover = false;
 	bool down = false;

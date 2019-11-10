@@ -1,3 +1,8 @@
+/*
+	Various utility methods, just so they don't have to live in main.cc.
+*/
+
+
 SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn, bool trans){
 	FileLoader *fl = FileLoader::get(fn);
 	if(!fl)

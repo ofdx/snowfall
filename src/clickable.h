@@ -1,3 +1,18 @@
+/*
+	Clickable
+	mperron(2019)
+
+	Classes which inherit from this one can define a clickable region,
+	and then implement the various event functions:
+
+		void on_mouse_click(SDL_MouseButtonEvent event){}
+
+		void on_mouse_down(SDL_MouseButtonEvent event){}
+		void on_mouse_up(SDL_MouseButtonEvent event){}
+
+		void on_mouse_in(SDL_MouseMotionEvent event){}
+		void on_mouse_out(SDL_MouseMotionEvent event){}
+*/
 class Clickable {
 	bool mouse_in;
 	int buttons;
