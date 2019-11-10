@@ -1,6 +1,6 @@
 class GarageScene : public Scene {
 public:
-	GarageScene(SDL_Renderer *rend) : Scene(rend) {
+	GarageScene(Scene::Controller *ctrl) : Scene(ctrl) {
 		bg = textureFromBmp(rend, "garage.bmp");
 	}
 };

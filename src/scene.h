@@ -12,7 +12,6 @@ protected:
 	list<Drawable*> drawables;
 	list<Clickable*> clickables;
 
-	Scene(SDL_Renderer *rend) : Drawable(rend) {}
 
 public:
 	virtual ~Scene(){
@@ -34,4 +33,36 @@ public:
 		for(auto clickable : clickables)
 			clickable->check_mouse(event);
 	}
+
+	class Controller : public Drawable {
+	public:
+		Scene *scene = NULL;
+
+		Controller(SDL_Renderer *rend) : Drawable(rend) {}
+
+		SDL_Renderer *renderer(){
+			return rend;
+		}
+
+		void set_scene(Scene *scene){
+			if(this->scene)
+				delete this->scene;
+
+			this->scene = scene;
+		}
+
+		void draw(int ticks){
+			if(scene)
+				scene->draw(ticks);
+		}
+
+		void check_mouse(SDL_Event event){
+			if(scene)
+				scene->check_mouse(event);
+		}
+	};
+
+protected:
+	Controller *ctrl;
+	Scene(Controller *ctrl) : Drawable(ctrl->renderer()) {}
 };

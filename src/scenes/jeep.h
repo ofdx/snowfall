@@ -3,7 +3,7 @@ private:
 	ParticleEffect *snow;
 
 public:
-	JeepScene(SDL_Renderer *rend) : Scene(rend) {
+	JeepScene(Scene::Controller *ctrl) : Scene(ctrl) {
 		bg = textureFromBmp(rend, "jeep.bmp");
 
 		snow = new SnowEffect(

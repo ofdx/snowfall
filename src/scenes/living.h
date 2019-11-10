@@ -1,7 +1,7 @@
 class LivingRoomScene : public Scene {
 	class QuitButton : public Button {
 	public:
-		QuitButton(SDL_Renderer *rend, SDL_Rect click_region) : Button(rend, click_region) { }
+		QuitButton(SDL_Renderer *rend, SDL_Rect click_region) : Button(rend, click_region) {}
 
 		void action(){
 			exit(0);
@@ -34,7 +34,7 @@ class LivingRoomScene : public Scene {
 	Mix_Music *music;
 
 public:
-	LivingRoomScene(SDL_Renderer *rend) : Scene(rend) {
+	LivingRoomScene(Scene::Controller *ctrl) : Scene(ctrl) {
 		bg = textureFromBmp(rend, "living/1.bmp");
 
 		// Load music.

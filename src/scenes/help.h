@@ -1,6 +1,6 @@
 class HelpScene : public Scene {
 public:
-	HelpScene(SDL_Renderer *rend) : Scene(rend) {
+	HelpScene(Scene::Controller *ctrl) : Scene(ctrl) {
 		bg = textureFromBmp(rend, "help.bmp");
 	}
 

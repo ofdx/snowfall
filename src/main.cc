@@ -29,8 +29,8 @@ int render_scale = 5;
 #include "scenes/intro.h"
 #include "scenes/help.h"
 #include "scenes/living.h"
-#include "scenes/garage.h"
 #include "scenes/jeep.h"
+#include "scenes/garage.h"
 
 int main(int argc, char **argv){
 #include "assetblob"
@@ -80,7 +80,8 @@ int main(int argc, char **argv){
 
 	map<int, bool> keys;
 
-	Scene *scene = new IntroSplashScene(rend);
+	Scene::Controller *ctrl = new Scene::Controller(rend);
+	ctrl->set_scene(new IntroSplashScene(ctrl));
 
 	// Intro splash
 	{
@@ -92,7 +93,7 @@ int main(int argc, char **argv){
 			int ticks = (ticks_now - ticks_prev);
 			ticks_prev = ticks_now;
 
-			scene->draw(ticks);
+			ctrl->draw(ticks);
 
 			SDL_RenderPresent(rend);
 
@@ -101,15 +102,12 @@ int main(int argc, char **argv){
 
 			SDL_Delay(1000 / 60);
 		}
-
-		delete scene;
 	}
 
 	// FIXME debug - show help at startup
 	{
-		scene = new HelpScene(rend);
-		scene->draw(0);
-		delete scene;
+		ctrl->set_scene(new HelpScene(ctrl));
+		ctrl->draw(0);
 
 		SDL_RenderPresent(rend);
 
@@ -129,7 +127,7 @@ int main(int argc, char **argv){
 	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 14, 14 };
 
 	// Load the first scene.
-	scene = new LivingRoomScene(rend);
+	ctrl->set_scene(new LivingRoomScene(ctrl));
 
 	bool render_reticule = true;
 	int ticks_last = SDL_GetTicks();
@@ -158,7 +156,7 @@ int main(int argc, char **argv){
 
 				case SDL_MOUSEBUTTONDOWN:
 				case SDL_MOUSEBUTTONUP:
-					scene->check_mouse(event);
+					ctrl->check_mouse(event);
 					break;
 			}
 		}
@@ -211,18 +209,14 @@ int main(int argc, char **argv){
 		offset_y += delta_y;
 
 		// Swap textures just for fun.
-		if(keys[SDLK_q] && !(dynamic_cast<LivingRoomScene*>(scene))){
-			delete scene;
-			scene = new LivingRoomScene(rend);
-		}
-		if(keys[SDLK_e] && !(dynamic_cast<GarageScene*>(scene))){
-			delete scene;
-			scene = new GarageScene(rend);
-		}
-		if(keys[SDLK_1] && !(dynamic_cast<JeepScene*>(scene))){
-			delete scene;
-			scene = new JeepScene(rend);
-		}
+		if(keys[SDLK_q] && !(dynamic_cast<LivingRoomScene*>(ctrl->scene)))
+			ctrl->set_scene(new LivingRoomScene(ctrl));
+
+		if(keys[SDLK_e] && !(dynamic_cast<GarageScene*>(ctrl->scene)))
+			ctrl->set_scene(new GarageScene(ctrl));
+
+		if(keys[SDLK_1] && !(dynamic_cast<JeepScene*>(ctrl->scene)))
+			ctrl->set_scene(new JeepScene(ctrl));
 
 		// Test multiple mouse cursors.
 		if(keys[SDLK_2])
@@ -235,7 +229,7 @@ int main(int argc, char **argv){
 			render_reticule = !render_reticule;
 
 		// Draw the current scene.
-		scene->draw(ticks);
+		ctrl->draw(ticks);
 
 		// Draw the targeting reticule.
 		if(render_reticule){

@@ -3,7 +3,7 @@ private:
 	ParticleEffect *snow_left, *snow_right;
 
 public:
-	IntroSplashScene(SDL_Renderer *rend) : Scene(rend) {
+	IntroSplashScene(Scene::Controller *ctrl) : Scene(ctrl) {
 		bg = textureFromBmp(rend, "krakcircle.bmp");
 
 		snow_left = new SnowEffect(
