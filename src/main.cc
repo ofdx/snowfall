@@ -80,8 +80,15 @@ int main(int argc, char **argv){
 
 	map<int, bool> keys;
 
+	// Create pointers to scene constructors by name.
+	Scene::reg("help", scene_create<HelpScene>);
+	Scene::reg("intro", scene_create<IntroSplashScene>);
+	Scene::reg("living", scene_create<LivingRoomScene>);
+	Scene::reg("jeep", scene_create<JeepScene>);
+	Scene::reg("garage", scene_create<GarageScene>);
+
 	Scene::Controller *ctrl = new Scene::Controller(rend);
-	ctrl->set_scene(new IntroSplashScene(ctrl));
+	ctrl->set_scene(Scene::create(ctrl, "intro"));
 
 	// Intro splash
 	{
@@ -106,7 +113,7 @@ int main(int argc, char **argv){
 
 	// FIXME debug - show help at startup
 	{
-		ctrl->set_scene(new HelpScene(ctrl));
+		ctrl->set_scene(Scene::create(ctrl, "help"));
 		ctrl->draw(0);
 
 		SDL_RenderPresent(rend);
@@ -127,7 +134,7 @@ int main(int argc, char **argv){
 	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 14, 14 };
 
 	// Load the first scene.
-	ctrl->set_scene(new LivingRoomScene(ctrl));
+	ctrl->set_scene(Scene::create(ctrl, "living"));
 
 	bool render_reticule = true;
 	int ticks_last = SDL_GetTicks();
@@ -210,13 +217,13 @@ int main(int argc, char **argv){
 
 		// Swap textures just for fun.
 		if(keys[SDLK_q] && !(dynamic_cast<LivingRoomScene*>(ctrl->scene)))
-			ctrl->set_scene(new LivingRoomScene(ctrl));
+			ctrl->set_scene(Scene::create(ctrl, "living"));
 
 		if(keys[SDLK_e] && !(dynamic_cast<GarageScene*>(ctrl->scene)))
-			ctrl->set_scene(new GarageScene(ctrl));
+			ctrl->set_scene(Scene::create(ctrl, "garage"));
 
 		if(keys[SDLK_1] && !(dynamic_cast<JeepScene*>(ctrl->scene)))
-			ctrl->set_scene(new JeepScene(ctrl));
+			ctrl->set_scene(Scene::create(ctrl, "jeep"));
 
 		// Test multiple mouse cursors.
 		if(keys[SDLK_2])
