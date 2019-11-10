@@ -36,6 +36,7 @@ build/picogamo.exe: build/picogamo
 	@echo "Building for Windows..."
 	@if [ -n "`which "$(MINGW)"`" ]; then \
 		$(MINGW) $(GCC_ARGS) -static -o build/picogamo.exe src/main.cc -Lx86_64/lib -Lx86_64_mixer/lib -Ix86_64/include -Ix86_64/include/SDL2 -Ix86_64_mixer/include -lmingw32 -lSDL2main -lSDL2 -lSDL2_mixer -mwindows  -Wl,--no-undefined -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lsetupapi -lversion -luuid -static-libgcc -static-libstdc++; \
+		if [ -e build/picogamo.exe ]; then chmod a-x build/picogamo.exe; fi; \
 	else \
 		touch build/picogamo.exe; \
 		echo "  - No Windows build environment available."; \
