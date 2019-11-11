@@ -1,7 +1,7 @@
 class LivingRoomScene : public Scene {
 	class QuitButton : public Button {
 	public:
-		QuitButton(SDL_Renderer *rend, SDL_Rect click_region) : Button(rend, click_region) {}
+		QuitButton(SDL_Renderer *rend, SDL_Rect click_region, string text) : Button(rend, click_region, text) {}
 
 		void action(){
 			exit(0);
@@ -12,7 +12,7 @@ class LivingRoomScene : public Scene {
 		Mix_Chunk *atari = NULL;
 
 	public:
-		ChirpButton(SDL_Renderer *rend, SDL_Rect click_region) : Button(rend, click_region) {
+		ChirpButton(SDL_Renderer *rend, SDL_Rect click_region, string text) : Button(rend, click_region, text) {
 			// Load chirp sound.
 			{
 				FileLoader *fl = FileLoader::get("atari.wav");
@@ -25,7 +25,14 @@ class LivingRoomScene : public Scene {
 			}
 		}
 
-		void action(){
+		// Immediately perform the action (make a chirping sound) when the
+		// button is pressed, rather than waiting for a real click (press and
+		// release).
+		void on_mouse_down(SDL_MouseButtonEvent event){
+			// Call the parent function, so that the down state of the button
+			// still changes as normal.
+			Button::on_mouse_down(event);
+
 			if(atari)
 				Mix_PlayChannel(-1, atari, 0);
 		}
@@ -51,15 +58,15 @@ public:
 
 		quitButton = new QuitButton(rend, (SDL_Rect){
 			10, 10,
-			60, 20
-		});
+			60, 17
+		}, "Quit");
 		drawables.push_back(quitButton);
 		clickables.push_back(quitButton);
 
 		chirpButton = new ChirpButton(rend, (SDL_Rect){
-			10, 40,
-			60, 20
-		});
+			10, 33,
+			60, 17
+		}, "Chirp");
 		drawables.push_back(chirpButton);
 		clickables.push_back(chirpButton);
 	}

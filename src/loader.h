@@ -73,7 +73,12 @@ void FileLoader::load(string fname, FileLoader *fl){
 
 // Find a file by path.
 FileLoader *FileLoader::get(string fname){
-	return assets[fname];
+	FileLoader *fl = assets[fname];
+
+	if(!fl)
+		cerr << "File not found: " << fname << endl;
+
+	return fl;
 }
 
 // Turn the base64 encoded data into real data.

@@ -8,32 +8,63 @@ class Button : public Drawable, public Clickable {
 	bool hover = false;
 	bool down = false;
 
-public:
-	Button(
-		SDL_Renderer *rend,
-		SDL_Rect click_region
-	) : Drawable(rend), Clickable(click_region) {
-		// ...
+	PicoText *label;
+
+	void label_create(string text){
+		label = new PicoText(rend, (SDL_Rect){
+			click_region.x + 3, click_region.y + (click_region.h / 2) - 3,
+			click_region.w - 6, click_region.h - 7
+		}, text);
+		label->set_color(0x70, 0x70, 0x70);
 	}
 
-	void on_mouse_down(SDL_MouseButtonEvent event){
+public:
+	// Create a button which is sized by pixels (with click_region).
+	Button(
+		SDL_Renderer *rend,
+		SDL_Rect click_region,
+		string text
+	) : Drawable(rend), Clickable(click_region) {
+		label_create(text);
+	}
+
+	// Create a button which is sized by characters.
+	Button(
+		SDL_Renderer *rend,
+		int x, int y,
+		int rows, int cols,
+		string text
+	) : Drawable(rend), Clickable((SDL_Rect){
+		x, y,
+		((cols * 6) + 5), ((rows * 7) + 8)
+	}) {
+		label_create(text);
+	}
+
+	~Button(){
+		delete label;
+	}
+
+	virtual void on_mouse_down(SDL_MouseButtonEvent event){
 		if(event.button & SDL_BUTTON_LEFT)
 			down = true;
 	}
-	void on_mouse_up(SDL_MouseButtonEvent event){
+	virtual void on_mouse_up(SDL_MouseButtonEvent event){
 		if(event.button & SDL_BUTTON_LEFT)
 			down = false;
 	}
-	void on_mouse_click(SDL_MouseButtonEvent event){
+	virtual void on_mouse_click(SDL_MouseButtonEvent event){
 		action();
 	}
 
 
-	void on_mouse_in(SDL_MouseMotionEvent event){
+	virtual void on_mouse_in(SDL_MouseMotionEvent event){
 		hover = true;
+		label->set_color(0x70, 0x70, 0xf0);
 	}
-	void on_mouse_out(SDL_MouseMotionEvent event){
+	virtual void on_mouse_out(SDL_MouseMotionEvent event){
 		hover = false;
+		label->set_color(0x70, 0x70, 0x70);
 	}
 
 	void draw(int ticks){
@@ -47,6 +78,9 @@ public:
 		// Border
 		SDL_SetRenderDrawColor(rend, 0x70, 0x70, bord, 0xFF);
 		SDL_RenderDrawRect(rend, &click_region);
+
+		// Text
+		label->draw(ticks);
 	}
 
 	virtual void action(){}

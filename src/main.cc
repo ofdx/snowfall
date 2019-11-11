@@ -18,6 +18,7 @@ int render_scale = 5;
 #include "drawable.h"
 #include "clickable.h"
 
+#include "text.h"
 #include "scene.h"
 #include "particle.h"
 #include "button.h"
