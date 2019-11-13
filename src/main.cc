@@ -28,7 +28,6 @@ int render_scale = 5;
 
 // Scenes
 #include "scenes/intro.h"
-#include "scenes/help.h"
 #include "scenes/living.h"
 #include "scenes/jeep.h"
 #include "scenes/garage.h"
@@ -82,7 +81,6 @@ int main(int argc, char **argv){
 	map<int, bool> keys;
 
 	// Create pointers to scene constructors by name.
-	Scene::reg("help", scene_create<HelpScene>);
 	Scene::reg("intro", scene_create<IntroSplashScene>);
 	Scene::reg("living", scene_create<LivingRoomScene>);
 	Scene::reg("jeep", scene_create<JeepScene>);
@@ -95,8 +93,9 @@ int main(int argc, char **argv){
 	{
 		int ticks_start = SDL_GetTicks();
 		int ticks_prev = ticks_start;
+		bool skip = false;
 
-		while(1){
+		while(!skip){
 			int ticks_now = SDL_GetTicks();
 			int ticks = (ticks_now - ticks_prev);
 			ticks_prev = ticks_now;
@@ -105,29 +104,16 @@ int main(int argc, char **argv){
 
 			SDL_RenderPresent(rend);
 
-			if(ticks_now - ticks_start > 3000)
-				break;
+			if((ticks_now - ticks_start) > 3000){
+				while(SDL_PollEvent(&event)){
+					if(event.type == SDL_KEYDOWN){
+						skip = true;
+						break;
+					}
+				}
+			}
 
 			SDL_Delay(1000 / 60);
-		}
-	}
-
-	// FIXME debug - show help at startup
-	{
-		ctrl->set_scene(Scene::create(ctrl, "help"));
-		ctrl->draw(0);
-
-		SDL_RenderPresent(rend);
-
-		// Eat up enqueued events.
-		while(SDL_PollEvent(&event));
-
-		// Wait for a keypress.
-		while(1){
-			SDL_WaitEvent(&event);
-
-			if(event.type == SDL_KEYDOWN)
-				break;
 		}
 	}
 

@@ -33,10 +33,11 @@ public:
 		drawables.push_back(snow_right);
 
 		deadbeef = new PicoText(rend, (SDL_Rect){
-			0, 0,
+			5, 0,
 			SCREEN_WIDTH, SCREEN_HEIGHT
-		}, "deadbeef");
+		}, "Pico  Gamo");
 		deadbeef->set_font("fonts/24x28.bmp", 24, 28);
+		deadbeef->set_color(0x90, 0x00, 0x00);
 		drawables.push_back(deadbeef);
 	}
 
