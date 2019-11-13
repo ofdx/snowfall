@@ -32,13 +32,20 @@ public:
 
 		// Load the font image.
 		font = textureFromBmp(rend, "fonts/6x7.bmp", true);
-
-		// Alternate fonts and font sizes?
-		// TODO
 	}
 
 	~PicoText(){
 		SDL_DestroyTexture(font);
+	}
+
+	void set_font(string bitmap, int c_width, int c_height){
+		if(font)
+			SDL_DestroyTexture(font);
+
+		font = textureFromBmp(rend, bitmap.c_str(), true);
+
+		this->c_width = c_width;
+		this->c_height = c_height;
 	}
 
 	void draw(int ticks){
