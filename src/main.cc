@@ -31,6 +31,7 @@ int render_scale = 5;
 #include "scenes/living.h"
 #include "scenes/jeep.h"
 #include "scenes/garage.h"
+#include "scenes/forest.h"
 
 int main(int argc, char **argv){
 #include "assetblob"
@@ -85,6 +86,7 @@ int main(int argc, char **argv){
 	Scene::reg("living", scene_create<LivingRoomScene>);
 	Scene::reg("jeep", scene_create<JeepScene>);
 	Scene::reg("garage", scene_create<GarageScene>);
+	Scene::reg("forest", scene_create<ForestScene>);
 
 	Scene::Controller *ctrl = new Scene::Controller(rend);
 	ctrl->set_scene(Scene::create(ctrl, "intro"));
@@ -121,9 +123,9 @@ int main(int argc, char **argv){
 	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 14, 14 };
 
 	// Load the first scene.
-	ctrl->set_scene(Scene::create(ctrl, "living"));
+	ctrl->set_scene(Scene::create(ctrl, "forest"));
 
-	bool render_reticule = true;
+	bool render_reticule = false;
 	int ticks_last = SDL_GetTicks();
 	while(1){
 		int ticks_now = SDL_GetTicks();
