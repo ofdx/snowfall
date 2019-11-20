@@ -1,10 +1,14 @@
 class LivingRoomScene : public Scene {
 	class QuitButton : public Button {
+		Scene::Controller *ctrl;
+
 	public:
-		QuitButton(SDL_Renderer *rend, SDL_Rect click_region, string text) : Button(rend, click_region, text) {}
+		QuitButton(Scene::Controller *ctrl, SDL_Rect click_region, string text) : Button(ctrl->renderer(), click_region, text) {
+			this->ctrl = ctrl;
+		}
 
 		void action(){
-			exit(0);
+			ctrl->quit();
 		}
 	} *quitButton;
 
@@ -56,7 +60,7 @@ public:
 			}
 		}
 
-		quitButton = new QuitButton(rend, (SDL_Rect){
+		quitButton = new QuitButton(ctrl, (SDL_Rect){
 			10, 10,
 			60, 17
 		}, "Quit");

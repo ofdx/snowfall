@@ -7,6 +7,7 @@
 class Button : public Drawable, public Clickable {
 	bool hover = false;
 	bool down = false;
+	char alpha = 0xFF;
 
 	PicoText *label;
 
@@ -72,11 +73,11 @@ public:
 		char bord = (hover ? 0xf0 : 0x70);
 
 		// Fill
-		SDL_SetRenderDrawColor(rend, fill, fill, fill, 0xFF);
+		SDL_SetRenderDrawColor(rend, fill, fill, fill, alpha);
 		SDL_RenderFillRect(rend, &click_region);
 
 		// Border
-		SDL_SetRenderDrawColor(rend, 0x70, 0x70, bord, 0xFF);
+		SDL_SetRenderDrawColor(rend, 0x70, 0x70, bord, alpha);
 		SDL_RenderDrawRect(rend, &click_region);
 
 		// Text
@@ -84,4 +85,9 @@ public:
 	}
 
 	virtual void action(){}
+
+	void set_alpha(char alpha){
+		label->set_alpha(alpha);
+		this->alpha = alpha;
+	}
 };

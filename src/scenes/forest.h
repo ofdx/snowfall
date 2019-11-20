@@ -2,14 +2,16 @@ class ForestScene : public Scene {
 	SDL_Texture *forest;
 	SDL_Rect pan;
 
-	float pan_vertical = -15.0f;
+	float pan_vertical = 0.0f;
 	bool panning = true;
+	float fade_buttons = 0.0f;
+	float fade_title = 0.0f;
 
 	class PlayButton : public Button {
 		Scene::Controller *ctrl;
 
 	public:
-		PlayButton(Scene::Controller *ctrl, SDL_Rect click_region, string text) : Button(ctrl->renderer(), click_region, text) {
+		PlayButton(Scene::Controller *ctrl, int x, int y, string text) : Button(ctrl->renderer(), x, y, 1, text.size(), text) {
 			this->ctrl = ctrl;
 		}
 
@@ -19,14 +21,19 @@ class ForestScene : public Scene {
 	} *playButton;
 
 	class QuitButton : public Button {
+		Scene::Controller *ctrl;
+
 	public:
-		QuitButton(SDL_Renderer *rend, SDL_Rect click_region, string text) : Button(rend, click_region, text) {}
+		QuitButton(Scene::Controller *ctrl, int x, int y, string text) : Button(ctrl->renderer(), x, y, 1, text.size(), text) {
+			this->ctrl = ctrl;
+		}
 
 		void action(){
-			exit(0);
+			ctrl->quit();
 		}
 	} *quitButton;
 
+	PicoText *title;
 	Mix_Music *music;
 
 public:
@@ -37,16 +44,22 @@ public:
 			SCREEN_WIDTH, SCREEN_HEIGHT
 		};
 
+		drawables.push_back(quitButton = new QuitButton(ctrl, SCREEN_WIDTH - 32, (SCREEN_HEIGHT - 18), "Quit"));
+		quitButton->set_alpha(0x00);
 
-		SDL_Rect menu_button = {
-			3, SCREEN_HEIGHT - 18,
-			120, 15
-		};
-		quitButton = new QuitButton(rend, menu_button, "Quit");
+		drawables.push_back(playButton = new PlayButton(ctrl, SCREEN_WIDTH - 88, (SCREEN_HEIGHT - 18), "Begin..."));
+		playButton->set_alpha(0x00);
 
-		menu_button.y -= (menu_button.h + 3);
-		playButton = new PlayButton(ctrl, menu_button, "Begin Adventure...");
+		title = new PicoText(rend, (SDL_Rect){
+			5, 0,
+			SCREEN_WIDTH, SCREEN_HEIGHT
+		}, "Pico Gamo");
+		title->set_font("fonts/24x28.bmp", 24, 28);
+		title->set_color(0x90, 0x00, 0x00);
+		title->set_alpha(0x00);
+		drawables.push_back(title);
 
+		// Load and start background music.
 		{
 			FileLoader *fl = FileLoader::get("t2.wav");
 
@@ -66,25 +79,35 @@ public:
 		SDL_DestroyTexture(forest);
 
 		delete playButton;
+		delete quitButton;
+
+		delete title;
 	}
 
 	void draw(int ticks){
 		if(panning){
-			pan_vertical += (ticks / 200.0f);
+			// Pan the image from top to bottom.
+			pan.y = slide_quad(0, (384 - SCREEN_HEIGHT), 3000, ticks, pan_vertical);
 
-			if(pan_vertical > 0){
-				pan_vertical = 0;
+			// Stop panning when we've reached the target.
+			if(pan.y == (384 - SCREEN_HEIGHT)){
 				panning = false;
 
-				// Start drawing menu items
-				drawables.push_back(playButton);
+				// Make the buttons interactive when the pan completes.
 				clickables.push_back(playButton);
-
-				drawables.push_back(quitButton);
 				clickables.push_back(quitButton);
 			}
+		}
 
-			pan.y = (384 - SCREEN_HEIGHT) - (pan_vertical * pan_vertical);
+		if((fade_title < 32.0f) && (pan_vertical > 8.0f))
+			title->set_alpha(slide_quad_right(0x00, 0xcc, 5000, ticks, fade_title));
+
+		if(fade_buttons < 16.0f){
+			// Fade in the buttons/text.
+			char alpha = slide_quad_right(0x00, 0xff, 3500, ticks, fade_buttons);
+
+			playButton->set_alpha(alpha);
+			quitButton->set_alpha(alpha);
 		}
 
 		SDL_RenderCopy(rend, forest, &pan, NULL);

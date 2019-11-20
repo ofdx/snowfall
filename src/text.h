@@ -140,6 +140,11 @@ public:
 		SDL_SetTextureColorMod(font, r, g, b);
 	}
 
+	// Set the alpha/transparency for the text at any time.
+	void set_alpha(char a){
+		SDL_SetTextureAlphaMod(font, a);
+	}
+
 	// Set the number of millisecond ticks to hang on each character when
 	// simulating a typewriter. Set to 0 (default) to disable this effect.
 	void set_ticks_perchar(int ticks){
