@@ -139,6 +139,9 @@ public:
 	void set_color(char r, char g, char b){
 		SDL_SetTextureColorMod(font, r, g, b);
 	}
+	void set_color(SDL_Color col){
+		set_color(col.r, col.g, col.b);
+	}
 
 	// Set the alpha/transparency for the text at any time.
 	void set_alpha(char a){

@@ -92,7 +92,7 @@ int main(int argc, char **argv){
 	ctrl->set_scene(Scene::create(ctrl, "intro"));
 
 	// Intro splash
-	{
+	/*{
 		int ticks_start = SDL_GetTicks();
 		int ticks_prev = ticks_start;
 		bool skip = false;
@@ -117,7 +117,7 @@ int main(int argc, char **argv){
 
 			SDL_Delay(1000 / 60);
 		}
-	}
+	}*/
 
 	// Simple rectangle representing the mouse cursor.
 	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 14, 14 };

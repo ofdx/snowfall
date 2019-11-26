@@ -9,6 +9,11 @@ class Button : public Drawable, public Clickable {
 	bool down = false;
 	char alpha = 0xFF;
 
+	SDL_Color color_normal = { 0xb0, 0xb0, 0xb0 };
+	SDL_Color color_down = { 0x40, 0x40, 0x40 };
+	SDL_Color color_label = { 0x70, 0x70, 0x70 };
+	SDL_Color color_hover = { 0x80, 0xf0, 0x60 };
+
 	PicoText *label;
 
 	void label_create(string text){
@@ -16,7 +21,7 @@ class Button : public Drawable, public Clickable {
 			click_region.x + 3, click_region.y + (click_region.h / 2) - 3,
 			click_region.w - 6, click_region.h - 7
 		}, text);
-		label->set_color(0x70, 0x70, 0x70);
+		label->set_color(color_label);
 	}
 
 public:
@@ -60,24 +65,24 @@ public:
 
 
 	virtual void on_mouse_in(SDL_MouseMotionEvent event){
+		label->set_color(color_hover);
 		hover = true;
-		label->set_color(0x70, 0x70, 0xf0);
 	}
 	virtual void on_mouse_out(SDL_MouseMotionEvent event){
+		label->set_color(color_label);
 		hover = false;
-		label->set_color(0x70, 0x70, 0x70);
 	}
 
 	void draw(int ticks){
-		char fill = (down ? 0x40 : 0xb0);
-		char bord = (hover ? 0xf0 : 0x70);
+		SDL_Color fill = (down ? color_down : color_normal);
+		SDL_Color bord = (hover ? color_hover : color_label);
 
 		// Fill
-		SDL_SetRenderDrawColor(rend, fill, fill, fill, alpha);
+		SDL_SetRenderDrawColor(rend, fill.r, fill.g, fill.b, alpha);
 		SDL_RenderFillRect(rend, &click_region);
 
 		// Border
-		SDL_SetRenderDrawColor(rend, 0x70, 0x70, bord, alpha);
+		SDL_SetRenderDrawColor(rend, bord.r, bord.g, bord.b, alpha);
 		SDL_RenderDrawRect(rend, &click_region);
 
 		// Text
