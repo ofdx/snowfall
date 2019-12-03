@@ -10,6 +10,8 @@ class ForestScene : public Scene {
 	float slide_card = 0.0f;
 	bool slide_card_dir = false;
 
+	ParticleEffect *snow;
+
 	class PlayButton : public Button {
 		Scene::Controller *ctrl;
 
@@ -49,6 +51,18 @@ public:
 			SCREEN_WIDTH, SCREEN_HEIGHT
 		};
 
+		snow = new SnowEffect(
+			rend,
+			(SDL_Rect){
+				0, 0,
+				SCREEN_WIDTH, SCREEN_HEIGHT
+			},
+			10, 50, 40,
+			-90, 10,
+			150
+		);
+		drawables.push_back(snow);
+
 		drawables.push_back(quitButton = new QuitButton(ctrl, SCREEN_WIDTH - 32, (SCREEN_HEIGHT - 18), "Quit"));
 		quitButton->set_alpha(0x00);
 
@@ -77,7 +91,6 @@ public:
 		}
 
 		card_king = new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 13);
-		card_king->card_flip();
 
 		drawables.push_back(card_king);
 		clickables.push_back(card_king);
@@ -95,6 +108,8 @@ public:
 		delete title;
 
 		delete card_king;
+
+		delete snow;
 	}
 
 	void draw(int ticks){
