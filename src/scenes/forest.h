@@ -7,6 +7,9 @@ class ForestScene : public Scene {
 	float fade_buttons = 0.0f;
 	float fade_title = 0.0f;
 
+	float slide_card = 0.0f;
+	bool slide_card_dir = false;
+
 	class PlayButton : public Button {
 		Scene::Controller *ctrl;
 
@@ -35,6 +38,8 @@ class ForestScene : public Scene {
 
 	PicoText *title;
 	Mix_Music *music;
+
+	PlayingCard *card_king;
 
 public:
 	ForestScene(Scene::Controller *ctrl) : Scene(ctrl) {
@@ -70,6 +75,12 @@ public:
 				cout << "Failed to find file: t2.wav" << endl;
 			}
 		}
+
+		card_king = new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 13);
+		card_king->card_flip();
+
+		drawables.push_back(card_king);
+		clickables.push_back(card_king);
 	}
 
 	~ForestScene(){
@@ -82,6 +93,8 @@ public:
 		delete quitButton;
 
 		delete title;
+
+		delete card_king;
 	}
 
 	void draw(int ticks){
@@ -108,6 +121,17 @@ public:
 
 			playButton->set_alpha(alpha);
 			quitButton->set_alpha(alpha);
+		}
+
+		// Make the card float around spookily.
+		if(slide_card_dir){
+			card_king->set_pos(slide_quad((SCREEN_WIDTH - 50), 20, 5000, ticks, slide_card), 8 * sin((slide_card / 8.0f) * 3.14159) + 50);
+		} else {
+			card_king->set_pos(slide_quad(20, (SCREEN_WIDTH - 50), 5000, ticks, slide_card), 8 * sin((slide_card / 8.0f) * 3.14159) + 50);
+		}
+		if(slide_card >= 32.0f){
+			slide_card_dir = !slide_card_dir;
+			slide_card = 0.0f;
 		}
 
 		SDL_RenderCopy(rend, forest, &pan, NULL);

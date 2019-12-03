@@ -22,6 +22,7 @@ int render_scale = 5;
 #include "scene.h"
 #include "particle.h"
 #include "button.h"
+#include "card.h"
 
 // Particle effects
 #include "snow.h"
