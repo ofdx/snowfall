@@ -33,7 +33,7 @@ public:
 					color.r = 0xff;
 					break;
 				case B:
-					color.b = 0xff;
+					color.r = color.b = 0xff;
 					break;
 				case C:
 					color.g = 0xff;
