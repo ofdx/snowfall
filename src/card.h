@@ -39,7 +39,7 @@ public:
 					color.g = 0xff;
 					break;
 				case D:
-					color.r = color.g = 0xff;
+					color.g = color.r = 0xff;
 					break;
 			}
 
@@ -55,11 +55,10 @@ public:
 	}
 
 	PlayingCard(SDL_Renderer *rend, int x, int y, enum Suit suit, int value) : Drawable(rend), Clickable() {
+		string face_path = "cards/" + to_string(value) + ".bmp";
 		this->value = value;
 
-		// FIXME - get the correct card image for this->value.
-		face = textureFromBmp(rend, "cards/i_k.bmp", true);
-
+		face = textureFromBmp(rend, face_path.c_str(), true);
 		back = textureFromBmp(rend, "cards/back.bmp", true);
 		set_suit(suit);
 		set_pos(x, y);
