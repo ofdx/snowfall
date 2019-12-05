@@ -6,6 +6,7 @@
 #include <string>
 #include <list>
 #include <cmath>
+#include <vector>
 
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 150
@@ -17,6 +18,7 @@ int render_scale = 5;
 #include "utility.h"
 #include "drawable.h"
 #include "clickable.h"
+#include "cardpanel.h"
 
 #include "text.h"
 #include "scene.h"

@@ -41,7 +41,7 @@ class ForestScene : public Scene {
 	PicoText *title;
 	Mix_Music *music;
 
-	PlayingCard *card_king;
+	CardPanel<PlayingCard> *card_panel;
 
 public:
 	ForestScene(Scene::Controller *ctrl) : Scene(ctrl) {
@@ -90,10 +90,19 @@ public:
 			}
 		}
 
-		card_king = new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 13);
+		card_panel = (
+			(new CardPanel<PlayingCard>())
+				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 1, true))
+				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 2, true))
+				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 3, true))
+				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 10, true))
+				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 11, true))
+				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 12, true))
+				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 13, true))
+		);
 
-		drawables.push_back(card_king);
-		clickables.push_back(card_king);
+		drawables.push_back(card_panel);
+		clickables.push_back(card_panel);
 	}
 
 	~ForestScene(){
@@ -107,7 +116,7 @@ public:
 
 		delete title;
 
-		delete card_king;
+		delete card_panel;
 
 		delete snow;
 	}
@@ -138,7 +147,13 @@ public:
 			quitButton->set_alpha(alpha);
 		}
 
+
+		// Cycle through playing cards.
+		if(slide_card == 0.0f)
+			card_panel->next();
+
 		// Make the card float around spookily.
+		PlayingCard *card_king = (PlayingCard*) card_panel->get_active();
 		if(slide_card_dir){
 			card_king->set_pos(slide_quad((SCREEN_WIDTH - 50), 20, 5000, ticks, slide_card), 8 * sin((slide_card / 8.0f) * 3.14159) + 50);
 		} else {

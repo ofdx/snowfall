@@ -1,5 +1,5 @@
 /*
-	Card
+	PlayingCard
 	mperron (2019)
 
 	A playing card, with a face and back.
@@ -54,9 +54,11 @@ public:
 		set_click_region(draw_region);
 	}
 
-	PlayingCard(SDL_Renderer *rend, int x, int y, enum Suit suit, int value) : Drawable(rend), Clickable() {
-		string face_path = "cards/" + to_string(value) + ".bmp";
+	PlayingCard(SDL_Renderer *rend, int x, int y, enum Suit suit, int value, bool face_up) : Drawable(rend), Clickable() {
+		this->face_up = face_up;
 		this->value = value;
+
+		string face_path = "cards/" + to_string(value) + ".bmp";
 
 		face = textureFromBmp(rend, face_path.c_str(), true);
 		back = textureFromBmp(rend, "cards/back.bmp", true);

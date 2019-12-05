@@ -45,7 +45,7 @@ public:
 		this->click_region = click_region;
 	}
 
-	void check_mouse(SDL_Event event){
+	virtual void check_mouse(SDL_Event event){
 		switch(event.type){
 			case SDL_MOUSEMOTION:
 			{
