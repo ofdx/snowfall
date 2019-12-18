@@ -90,16 +90,9 @@ public:
 			}
 		}
 
-		card_panel = (
-			(new CardPanel<PlayingCard>())
-				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 1, true))
-				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 2, true))
-				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 3, true))
-				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 10, true))
-				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 11, true))
-				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 12, true))
-				->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::A, 13, true))
-		);
+		card_panel = new CardPanel<PlayingCard>();
+		for(int i = 1; i <= 13; i++)
+			card_panel->add(new PlayingCard(rend, 20, 20, PlayingCard::Suit::B, i, true));
 
 		drawables.push_back(card_panel);
 		clickables.push_back(card_panel);
