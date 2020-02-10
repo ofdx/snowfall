@@ -35,6 +35,7 @@ int render_scale = 5;
 #include "scenes/jeep.h"
 #include "scenes/garage.h"
 #include "scenes/forest.h"
+#include "scenes/cards.h"
 
 int main(int argc, char **argv){
 #include "assetblob"
@@ -90,6 +91,7 @@ int main(int argc, char **argv){
 	Scene::reg("jeep", scene_create<JeepScene>);
 	Scene::reg("garage", scene_create<GarageScene>);
 	Scene::reg("forest", scene_create<ForestScene>);
+	Scene::reg("cards", scene_create<CardsScene>);
 
 	Scene::Controller *ctrl = new Scene::Controller(rend);
 	ctrl->set_scene(Scene::create(ctrl, "intro"));

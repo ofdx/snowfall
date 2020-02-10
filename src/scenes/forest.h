@@ -21,7 +21,7 @@ class ForestScene : public Scene {
 		}
 
 		void action(){
-			ctrl->set_scene(Scene::create(ctrl, "living"));
+			ctrl->set_scene(Scene::create(ctrl, "cards"));
 		}
 	} *playButton;
 
