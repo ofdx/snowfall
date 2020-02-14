@@ -11,6 +11,8 @@
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 150
 
+#define PI 3.14159265359
+
 using namespace std;
 int render_scale = 5;
 
@@ -22,6 +24,7 @@ int render_scale = 5;
 
 #include "text.h"
 #include "scene.h"
+#include "scene3d.h"
 #include "particle.h"
 #include "button.h"
 #include "card.h"
@@ -36,6 +39,7 @@ int render_scale = 5;
 #include "scenes/garage.h"
 #include "scenes/forest.h"
 #include "scenes/cards.h"
+#include "scenes/test3d.h"
 
 int main(int argc, char **argv){
 #include "assetblob"
@@ -92,6 +96,7 @@ int main(int argc, char **argv){
 	Scene::reg("garage", scene_create<GarageScene>);
 	Scene::reg("forest", scene_create<ForestScene>);
 	Scene::reg("cards", scene_create<CardsScene>);
+	Scene::reg("test3d", scene_create<TestScene3D>);
 
 	Scene::Controller *ctrl = new Scene::Controller(rend);
 	ctrl->set_scene(Scene::create(ctrl, "intro"));
