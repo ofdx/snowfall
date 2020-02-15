@@ -14,6 +14,25 @@ class TestScene3D : public Scene3D {
 
 	} *livingRoomButton;
 
+	class CameraControlButton : public Button {
+		Camera *cam;
+		Scene3D::coord xform_pos, xform_point;
+
+	public:
+		CameraControlButton(Camera *cam, Scene3D::coord xform_pos, Scene3D::coord xform_point, SDL_Renderer *rend, int x, int y, string text) :
+			Button(rend, x, y, 1, text.length(), text)
+		{
+			this->cam = cam;
+			this->xform_pos = xform_pos;
+			this->xform_point = xform_point;
+		}
+
+		void action(){
+			cam->pos += xform_pos;
+			cam->point += xform_point;
+		}
+	} *x_plus, *x_minus, *y_plus, *y_minus, *z_plus, *z_minus;
+
 	// 3D
 	Camera *cam;
 
@@ -37,7 +56,7 @@ class TestScene3D : public Scene3D {
 					pixel px_b = cam->vertex_screenspace(vertices[face[((i == len - 1) ? 0 : (i + 1))]]);
 
 					if(cam->pixel_visible(px_a) && cam->pixel_visible(px_b))
-						SDL_RenderDrawLine(rend, px_a.x, px_a.y, px_b.x, px_b.y);
+						cam->drawLine(rend, px_a, px_b);
 				}
 			}
 
@@ -55,11 +74,29 @@ class TestScene3D : public Scene3D {
 
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
-		livingRoomButton = new LivingRoomButton(ctrl, rend, SCREEN_WIDTH - 90, 10, "Living Room");
-		drawables.push_back(livingRoomButton);
-		clickables.push_back(livingRoomButton);
+		cam = new Camera( { -4.25, 1.5, 4 }, { 0, 0, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, PI / 4);
 
-		cam = new Camera( { -4.25, 1.5, 4 }, { 0, -1, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, PI / 4);
+		x_plus = new CameraControlButton(cam, (Scene3D::coord){ 0.1, 0, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 10, "X+");
+		x_minus = new CameraControlButton(cam, (Scene3D::coord){ -0.1, 0, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 10, "X-");
+		drawables.push_back(x_plus);
+		clickables.push_back(x_plus);
+		drawables.push_back(x_minus);
+		clickables.push_back(x_minus);
+
+		y_plus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0.1, 0}, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 30, "Y+");
+		y_minus = new CameraControlButton(cam, (Scene3D::coord){ 0, -0.1, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 30, "Y-");
+		drawables.push_back(y_plus);
+		clickables.push_back(y_plus);
+		drawables.push_back(y_minus);
+		clickables.push_back(y_minus);
+
+		z_plus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0, 0.1 }, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 50, "Z+");
+		z_minus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0, -0.1 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 50, "Z-");
+		drawables.push_back(z_plus);
+		clickables.push_back(z_plus);
+		drawables.push_back(z_minus);
+		clickables.push_back(z_minus);
+
 
 		vector<Scene3D::coord> cube_coords {
 			{ -5, 0, 5 },

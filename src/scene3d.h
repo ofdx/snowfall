@@ -9,24 +9,21 @@ public:
 	struct coord {
 		double x, y, z;
 
-		// Canonicalize angle [0,2*PI).
-		static double angle_canon(double theta){
-			while(theta < 0)
-				theta += (2 * PI);
-			while(theta >= (2 * PI))
-				theta -= (2 * PI);
-
-			return theta;
-		}
-
 		double angle_y(){
-			return coord::angle_canon(atan2(y, sqrt((x * x) + (z * z))));
+			return atan2(y, sqrt((x * x) + (z * z)));
 		}
 
 		double angle_xz(){
-			return coord::angle_canon(atan2(z, x));
+			return atan2(z, x);
 		}
 
+		coord operator += (const coord &other){
+			this->x += other.x;
+			this->y += other.y;
+			this->z += other.z;
+
+			return *this;
+		}
 		coord operator + (const coord &other){
 			return (coord){
 				this->x + other.x,
@@ -79,6 +76,13 @@ public:
 			ret += to_string(x) + ", " + to_string(y) + ")";
 			return ret;
 		}
+
+		bool operator >= (const pixel &other){
+			return ((x >= other.x) && (y >= other.y));
+		}
+		bool operator < (const pixel &other){
+			return ((x < other.x) && (y < other.y));
+		}
 	};
 
 	class Camera {
@@ -113,8 +117,8 @@ public:
 				rel_xz = rel.angle_xz(),
 				rel_y = rel.angle_y();
 
-			double yaw = coord::angle_canon(rel_xz - point_xz + maxangle_w);
-			double pitch = coord::angle_canon(rel_y - point_y + maxangle_h);
+			double yaw = (rel_xz - point_xz + maxangle_w);
+			double pitch = (rel_y - point_y + maxangle_h);
 
 			return (pixel){
 				x: w - (int)(yaw / (2 * maxangle_w) * w),
@@ -131,6 +135,39 @@ public:
 
 			return false;
 		}
+
+		int drawLine(SDL_Renderer *rend, pixel from, pixel to){
+			static int id = 0;
+
+			double dx = to.x - from.x;
+			double dy = to.y - from.y;
+			double step = ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
+			double x, y;
+
+			dx /= step;
+			dy /= step;
+
+			x = from.x;
+			y = from.y;
+
+			list<pixel> output;
+
+			pixel px_low = { 0, 0 };
+			pixel px_high = { w, h };
+
+			for(int i = 1; i <= step; i++){
+				pixel px = { (int)x, (int)y };
+
+				if((px >= px_low) && (px < px_high)){
+					SDL_RenderDrawPoint(rend, px.x, px.y);
+				}
+
+				x += dx;
+				y += dy;
+			}
+
+			return id++;
+		}
 	};
 
 	class Renderable : public Drawable {
@@ -140,10 +177,6 @@ public:
 	public:
 		Renderable(SDL_Renderer *rend, Camera *cam) : Drawable(rend) {
 			this->cam = cam;
-		}
-
-		virtual void draw(int ticks){
-			// Draw in 3D space.
 		}
 	};
 
