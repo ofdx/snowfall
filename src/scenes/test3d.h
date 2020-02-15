@@ -55,8 +55,7 @@ class TestScene3D : public Scene3D {
 					pixel px_a = cam->vertex_screenspace(vertices[face[i]]);
 					pixel px_b = cam->vertex_screenspace(vertices[face[((i == len - 1) ? 0 : (i + 1))]]);
 
-					if(cam->pixel_visible(px_a) && cam->pixel_visible(px_b))
-						cam->drawLine(rend, px_a, px_b);
+					cam->drawLine(rend, px_a, px_b);
 				}
 			}
 
@@ -76,6 +75,32 @@ public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
 		cam = new Camera( { -4.25, 1.5, 4 }, { 0, 0, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, PI / 4);
 
+		// 3D cube
+		{
+			vector<Scene3D::coord> cube_coords {
+				{ -5, 0, 5 },
+				{ -5, 0, 6 },
+				{ -4, 0, 6 },
+				{ -4, 0, 5 },
+				{ -5, 1, 5 },
+				{ -5, 1, 6 },
+				{ -4, 1, 6 },
+				{ -4, 1, 5 }
+			};
+			list<vector<int>> cube_faces {
+				{ 0, 1, 2, 3 },
+				{ 0, 1, 5, 4 },
+				{ 1, 2, 6, 5 },
+				{ 2, 3, 7, 6 },
+				{ 0, 3, 7, 4 },
+				{ 4, 5, 6, 7 }
+			};
+			cube = new Mesh(rend, cam, cube_coords, cube_faces);
+			drawables.push_back(cube);
+		}
+
+
+		// Camera control buttons
 		x_plus = new CameraControlButton(cam, (Scene3D::coord){ 0.1, 0, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 10, "X+");
 		x_minus = new CameraControlButton(cam, (Scene3D::coord){ -0.1, 0, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 10, "X-");
 		drawables.push_back(x_plus);
@@ -96,29 +121,6 @@ public:
 		clickables.push_back(z_plus);
 		drawables.push_back(z_minus);
 		clickables.push_back(z_minus);
-
-
-		vector<Scene3D::coord> cube_coords {
-			{ -5, 0, 5 },
-			{ -5, 0, 6 },
-			{ -4, 0, 6 },
-			{ -4, 0, 5 },
-			{ -5, 1, 5 },
-			{ -5, 1, 6 },
-			{ -4, 1, 6 },
-			{ -4, 1, 5 }
-		};
-		list<vector<int>> cube_faces {
-			{ 0, 1, 2, 3 },
-			{ 0, 1, 5, 4 },
-			{ 1, 2, 6, 5 },
-			{ 2, 3, 7, 6 },
-			{ 0, 3, 7, 4 },
-			{ 4, 5, 6, 7 }
-		};
-		cube = new Mesh(rend, cam, cube_coords, cube_faces);
-
-		drawables.push_back(cube);
 	}
 
 	~TestScene3D(){
