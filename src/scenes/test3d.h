@@ -1,4 +1,6 @@
 class TestScene3D : public Scene3D {
+	PicoText *text_xyz, *text_pry;
+
 	// 2D
 	class LivingRoomButton : public Button {
 		Scene::Controller *ctrl;
@@ -31,7 +33,67 @@ class TestScene3D : public Scene3D {
 			cam->pos += xform_pos;
 			cam->point += xform_point;
 		}
-	} *x_plus, *x_minus, *y_plus, *y_minus, *z_plus, *z_minus;
+	} *y_plus, *y_minus;
+
+	class CameraRotateButton : public Button {
+		Camera *cam;
+		double delta;
+
+	public:
+		CameraRotateButton(Camera *cam, double delta, SDL_Renderer *rend, int x, int y, string text) :
+			Button(rend, x, y, 1, text.length(), text)
+		{
+			this->cam = cam;
+			this->delta = delta;
+		}
+
+		void action(){
+			cam->yaw(delta);
+		}
+	} *xzr_plus, *xzr_minus;
+
+	class CameraPitchButton : public Button {
+		Camera *cam;
+		double delta;
+
+	public:
+		CameraPitchButton(Camera *cam, double delta, SDL_Renderer *rend, int x, int y, string text) :
+			Button(rend, x, y, 1, text.length(), text)
+		{
+			this->cam = cam;
+			this->delta = delta;
+		}
+
+		void action(){
+			cam->pitch(delta);
+		}
+	} *yr_plus, *yr_minus;;
+
+	class CameraMoveButton : public Button {
+		Camera *cam;
+		double dir, walk, fly;
+
+	public:
+		CameraMoveButton(Camera *cam, double dir, double walk, double fly, SDL_Renderer *rend, int x, int y, string text) :
+			Button(rend, x, y, 1, text.length(), text)
+		{
+			this->cam = cam;
+			this->dir = dir;
+			this->walk = walk;
+			this->fly = fly;
+		}
+
+		void action(){
+			if(dir)
+				cam->yaw(dir);
+
+			cam->walk(walk);
+			// cam->fly(fly);
+
+			if(dir)
+				cam->yaw(-dir);
+		}
+	} *xzw_plus, *xzw_minus, *strafe_right, *strafe_left;
 
 	// 3D
 	Camera *cam;
@@ -69,23 +131,29 @@ class TestScene3D : public Scene3D {
 					SDL_RenderDrawPoint(rend, px.x, px.y);
 			}
 		}
-	} *cube;
+	} *cube, *hat;
 
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
-		cam = new Camera( { -4.25, 1.5, 4 }, { 0, 0, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, PI / 4);
+		cam = new Camera( { -4.25, 1.5, 4 }, { 0, 0, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, PI / 6);
 
 		// 3D cube
 		{
 			vector<Scene3D::coord> cube_coords {
-				{ -5, 0, 5 },
-				{ -5, 0, 6 },
-				{ -4, 0, 6 },
-				{ -4, 0, 5 },
-				{ -5, 1, 5 },
-				{ -5, 1, 6 },
-				{ -4, 1, 6 },
-				{ -4, 1, 5 }
+				{ -5, 0, 5 },   // 0
+				{ -5, 0, 6 },   // 1
+				{ -4, 0, 6 },   // 2
+				{ -4, 0, 5 },   // 3
+				{ -5, 1, 5 },   // 4
+				{ -5, 1, 6 },   // 5
+				{ -4, 1, 6 },   // 6
+				{ -4, 1, 5 },   // 7
+
+				{ -2, 0.7, 5 }, // 8
+				{ -2, 0.7, 6 }, // 9
+
+				{ -2, 0, 5 },   // 10
+				{ -2, 0, 6 }    // 11
 			};
 			list<vector<int>> cube_faces {
 				{ 0, 1, 2, 3 },
@@ -93,20 +161,56 @@ public:
 				{ 1, 2, 6, 5 },
 				{ 2, 3, 7, 6 },
 				{ 0, 3, 7, 4 },
-				{ 4, 5, 6, 7 }
+				{ 4, 5, 6, 7 },
+
+				{ 6, 9, 8, 7 },  // Roof
+				{ 6, 9, 11, 2 }, // 6-wall
+				{ 7, 8, 10, 3 }  // 5-wall
+
 			};
 			cube = new Mesh(rend, cam, cube_coords, cube_faces);
 			drawables.push_back(cube);
 		}
 
+		// Witch's Hat
+		{
+			vector<Scene3D::coord> coords {
+				{ -5, 1, 5 },      // 0
+				{ -5, 1, 6 },      // 1
+				{ -4, 1, 6 },      // 2
+				{ -4, 1, 5 },      // 3
+				{ -4.5, 2.5, 5.5 } // 4
+			};
+			list<vector<int>> faces {
+				{ 0, 1, 2, 3 }, // Base
+				{ 4, 0, 1 },
+				{ 4, 1, 2 },
+				{ 4, 2, 3 },
+				{ 4, 3, 0 }
+			};
+			hat = new Mesh(rend, cam, coords, faces);
+			drawables.push_back(hat);
+		}
+
+		text_xyz = new PicoText(rend, (SDL_Rect){
+			5, SCREEN_HEIGHT - 20,
+			SCREEN_WIDTH, 10
+		}, "");
+		drawables.push_back(text_xyz);
+
+		text_pry = new PicoText(rend, (SDL_Rect){
+			5, SCREEN_HEIGHT - 10,
+			SCREEN_WIDTH, 10
+		}, "");
+		drawables.push_back(text_pry);
 
 		// Camera control buttons
-		x_plus = new CameraControlButton(cam, (Scene3D::coord){ 0.1, 0, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 10, "X+");
-		x_minus = new CameraControlButton(cam, (Scene3D::coord){ -0.1, 0, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 10, "X-");
-		drawables.push_back(x_plus);
-		clickables.push_back(x_plus);
-		drawables.push_back(x_minus);
-		clickables.push_back(x_minus);
+		strafe_right = new CameraMoveButton(cam, -(PI / 2), 0.1, 0, rend, 30, 10, "SR");
+		strafe_left = new CameraMoveButton(cam, (PI / 2), 0.1, 0, rend, 10, 10, "SL");
+		drawables.push_back(strafe_right);
+		clickables.push_back(strafe_right);
+		drawables.push_back(strafe_left);
+		clickables.push_back(strafe_left);
 
 		y_plus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0.1, 0}, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 30, "Y+");
 		y_minus = new CameraControlButton(cam, (Scene3D::coord){ 0, -0.1, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 30, "Y-");
@@ -115,17 +219,53 @@ public:
 		drawables.push_back(y_minus);
 		clickables.push_back(y_minus);
 
-		z_plus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0, 0.1 }, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 50, "Z+");
-		z_minus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0, -0.1 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 50, "Z-");
-		drawables.push_back(z_plus);
-		clickables.push_back(z_plus);
-		drawables.push_back(z_minus);
-		clickables.push_back(z_minus);
+		xzw_plus = new CameraMoveButton(cam, 0, 0.1, 0, rend, 30, 50, "FW");
+		xzw_minus = new CameraMoveButton(cam, 0, -0.1, 0, rend, 10, 50, "BK");
+		drawables.push_back(xzw_plus);
+		clickables.push_back(xzw_plus);
+		drawables.push_back(xzw_minus);
+		clickables.push_back(xzw_minus);
+
+		xzr_plus = new CameraRotateButton(cam, PI / 20, rend, 10, 70, "<-");
+		xzr_minus = new CameraRotateButton(cam, -(PI / 20), rend, 30, 70, "->");
+		drawables.push_back(xzr_plus);
+		clickables.push_back(xzr_plus);
+		drawables.push_back(xzr_minus);
+		clickables.push_back(xzr_minus);
+
+		yr_plus = new CameraPitchButton(cam, PI / 20, rend, 30, 90, "UP");
+		yr_minus = new CameraPitchButton(cam, -(PI / 20), rend, 10, 90, "DN");
+		drawables.push_back(yr_plus);
+		clickables.push_back(yr_plus);
+		drawables.push_back(yr_minus);
+		clickables.push_back(yr_minus);
+	}
+
+	void draw(int ticks){
+		text_xyz->set_message("c_pos: " + cam->pos.display());
+		text_pry->set_message("c_pnt: " + cam->point.display());
+
+		Scene3D::draw(ticks);
 	}
 
 	~TestScene3D(){
+		delete text_xyz;
+		delete text_pry;
+
+		delete strafe_right;
+		delete strafe_left;
+		delete y_plus;
+		delete y_minus;
+		delete xzw_plus;
+		delete xzw_minus;
+		delete yr_plus;
+		delete yr_minus;
+		delete xzr_plus;
+		delete xzr_minus;
+
 		delete livingRoomButton;
 		delete cube;
+		delete hat;
 		delete cam;
 	}
 };

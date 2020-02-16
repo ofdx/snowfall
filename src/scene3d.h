@@ -55,15 +55,16 @@ public:
 		}
 
 		string display(){
-			string ret("(");
+			stringstream ret;
 
-			ret += (
-				to_string(this->x) + ", " +
-				to_string(this->y) + ", " +
-				to_string(this->z) + ")"
-			);
+			ret
+				<< "("
+				<< this->x << ", "
+				<< this->y << ", "
+				<< this->z
+				<< ")";
 
-			return ret;
+			return ret.str();
 		}
 	};
 
@@ -71,10 +72,15 @@ public:
 		int x, y;
 
 		string display(){
-			string ret("(");
+			stringstream ret;
 
-			ret += to_string(x) + ", " + to_string(y) + ")";
-			return ret;
+			ret
+				<< "("
+				<< x << ", "
+				<< y
+				<< ")";
+
+			return ret.str();
 		}
 
 		bool operator >= (const pixel &other){
@@ -136,6 +142,7 @@ public:
 			return false;
 		}
 
+		// Draw a line on the screen to connect two pixels.
 		int drawLine(SDL_Renderer *rend, pixel from, pixel to){
 			static int id = 0;
 
@@ -168,6 +175,31 @@ public:
 
 			return id++;
 		}
+
+		// Turn the camera the specified number of radians around the Y-axis.
+		void yaw(double delta){
+			double xz = point.angle_xz() + delta;
+
+			point = (coord){ cos(xz), point.y, sin(xz) };
+		}
+
+		// Pitch the camera up or down the specified number of radians.
+		void pitch(double delta){
+			double y = point.angle_y() + delta;
+
+			if(y > (PI / 2))
+				y = (PI / 2);
+			if(y < -(PI / 2))
+				y = -(PI / 2);
+
+			point.y = sin(y);
+		}
+
+		void walk(double distance){
+			double heading = point.angle_xz();
+
+			pos += (coord){ distance * cos(heading), 0, distance * sin(heading) };
+		}
 	};
 
 	class Renderable : public Drawable {
@@ -184,7 +216,7 @@ public:
 
 	virtual void draw(int ticks){
 		// Clear the screen.
-		SDL_SetRenderDrawColor(rend, 255, 0, 255, 255);
+		SDL_SetRenderDrawColor(rend, 0xad, 0x29, 0x10, 255);
 		SDL_RenderClear(rend);
 		
 		// Draw everything.
