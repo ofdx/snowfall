@@ -1,21 +1,6 @@
 class TestScene3D : public Scene3D {
 	PicoText *text_xyz, *text_pry;
 
-	// 2D
-	class LivingRoomButton : public Button {
-		Scene::Controller *ctrl;
-
-	public:
-		LivingRoomButton(Scene::Controller *ctrl, SDL_Renderer *rend, int x, int y, string text) : Button(rend, x, y, 1, text.length(), text) {
-			this->ctrl = ctrl;
-		}
-
-		void action(){
-			ctrl->set_scene(Scene::create(ctrl, "living"));
-		}
-
-	} *livingRoomButton;
-
 	class CameraControlButton : public Button {
 		Camera *cam;
 		Scene3D::coord xform_pos, xform_point;
@@ -95,7 +80,6 @@ class TestScene3D : public Scene3D {
 		}
 	} *xzw_plus, *xzw_minus, *strafe_right, *strafe_left;
 
-	// 3D
 	Camera *cam;
 
 	class Mesh : public Renderable {
@@ -131,11 +115,32 @@ class TestScene3D : public Scene3D {
 					SDL_RenderDrawPoint(rend, px.x, px.y);
 			}
 		}
-	} *cube, *hat;
+	};
+
+	list<Mesh*> rendered_meshes;
 
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
-		cam = new Camera( { -4.25, 1.5, 4 }, { 0, 0, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, PI / 6);
+		cam = new Camera( { -4.25, 1.5, 4 }, { 0, 0, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+
+		// Grid
+		{
+			for(int x = -10; x < 10; x++)
+				for(int z = -10; z < 10; z++){
+					vector<Scene3D::coord> coords {
+						{ x-0.5, 0, z-0.5 },
+						{ x+0.5, 0, z-0.5 },
+						{ x+0.5, 0, z+0.5 },
+						{ x-0.5, 0, z+0.5 }
+					};
+					list<vector<int>> faces {
+						{ 0, 1, 2, 3 }
+					};
+					Mesh *mesh = new Mesh(rend, cam, coords, faces);
+					rendered_meshes.push_back(mesh);
+					drawables.push_back(mesh);
+				}
+		}
 
 		// 3D cube
 		{
@@ -168,7 +173,8 @@ public:
 				{ 7, 8, 10, 3 }  // 5-wall
 
 			};
-			cube = new Mesh(rend, cam, cube_coords, cube_faces);
+			Mesh *cube = new Mesh(rend, cam, cube_coords, cube_faces);
+			rendered_meshes.push_back(cube);
 			drawables.push_back(cube);
 		}
 
@@ -188,7 +194,8 @@ public:
 				{ 4, 2, 3 },
 				{ 4, 3, 0 }
 			};
-			hat = new Mesh(rend, cam, coords, faces);
+			Mesh *hat = new Mesh(rend, cam, coords, faces);
+			rendered_meshes.push_back(hat);
 			drawables.push_back(hat);
 		}
 
@@ -263,9 +270,9 @@ public:
 		delete xzr_plus;
 		delete xzr_minus;
 
-		delete livingRoomButton;
-		delete cube;
-		delete hat;
+		for(Mesh *mesh : rendered_meshes)
+			delete mesh;
+
 		delete cam;
 	}
 };
