@@ -9,18 +9,41 @@ public:
 	struct coord {
 		double x, y, z;
 
+		double distance_to(const coord &other){
+			coord diff = *this - other;
+
+			return sqrt((diff.x * diff.x) + (diff.z * diff.z) + (diff.y * diff.y));
+		}
+
+		double atan2p(double y, double x){
+			double a = atan2(y, x);
+
+			return ((a < 0) ? ((2 * PI) + a) : a);
+		}
+
 		double angle_y(){
-			return atan2(y, sqrt((x * x) + (z * z)));
+			return atan2p(y, sqrt((x * x) + (z * z)));
 		}
 
 		double angle_xz(){
-			return atan2(z, x);
+			return atan2p(z, x);
+		}
+
+		coord operator / (const int &divisor){
+			return (coord){
+				this->x / divisor,
+				this->y / divisor,
+				this->z / divisor
+			};
+		}
+		coord operator /= (const int &divisor){
+			*this = *this / divisor;
+
+			return *this;
 		}
 
 		coord operator += (const coord &other){
-			this->x += other.x;
-			this->y += other.y;
-			this->z += other.z;
+			*this = *this + other;
 
 			return *this;
 		}
@@ -123,12 +146,12 @@ public:
 				rel_xz = rel.angle_xz(),
 				rel_y = rel.angle_y();
 
-			double yaw = (rel_xz - point_xz + maxangle_w);
-			double pitch = (rel_y - point_y + maxangle_h);
+			double yaw = (rel_xz - point_xz);
+			double pitch = (rel_y - point_y);
 
 			return (pixel){
-				x: w - (int)(yaw / (2 * maxangle_w) * w),
-				y: h - (int)(pitch / (2 * maxangle_h) * h)
+				x: w - (int)((w / 2) + (yaw / (2 * maxangle_w) * w)),
+				y: h - (int)((h / 2) + (pitch / (2 * maxangle_h) * h))
 			};
 		}
 

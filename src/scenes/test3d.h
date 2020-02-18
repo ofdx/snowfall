@@ -92,11 +92,34 @@ class TestScene3D : public Scene3D {
 			this->faces = faces;
 		}
 
+		// Find the average coordinate of all vectors in a face.
+		coord face_avg(vector<int> face){
+			coord avg = { 0, 0, 0 };
+			short verts = face.size();
+
+			if(verts){
+				for(int vert : face)
+					avg += vertices[vert];
+
+				avg /= verts;
+			}
+
+			return avg;
+		}
+
 		virtual void draw(int ticks){
+			// Sorted faces by distance to camera.
+			multimap<double, vector<int>, greater<double>> draw_sequence;
+
+			// Sort faces by distance to the camera. Far faces are drawn first.
+			for(vector<int> face : faces)
+				draw_sequence.insert(pair<double, vector<int>>(cam->pos.distance_to(face_avg(face)), face));
+
 			// Draw faces
 			SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
+			for(auto it : draw_sequence){
+				vector<int> face = it.second;
 
-			for(auto face : faces){
 				for(int i = 0, len = face.size(); i< len; i++){
 					pixel px_a = cam->vertex_screenspace(vertices[face[i]]);
 					pixel px_b = cam->vertex_screenspace(vertices[face[((i == len - 1) ? 0 : (i + 1))]]);
