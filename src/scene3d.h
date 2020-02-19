@@ -292,6 +292,62 @@ public:
 		}
 	};
 
+	class Mesh : public Renderable {
+		vector<Scene3D::coord> vertices;
+		list<vector<int>> faces;
+
+	public:
+		Mesh(SDL_Renderer *rend, Camera *cam, vector<coord> vertices, list<vector<int>> faces) :
+			Renderable(rend, cam)
+		{
+			this->vertices = vertices;
+			this->faces = faces;
+		}
+
+		// Find the average coordinate of all vectors in a face.
+		coord face_avg(vector<int> face){
+			coord avg = { 0, 0, 0 };
+			short verts = face.size();
+
+			if(verts){
+				for(int vert : face)
+					avg += vertices[vert];
+
+				avg /= verts;
+			}
+
+			return avg;
+		}
+
+		virtual void draw(int ticks){
+			// Sorted faces by distance to camera.
+			multimap<double, vector<int>, greater<double>> draw_sequence;
+
+			// Sort faces by distance to the camera. Far faces are drawn first.
+			for(vector<int> face : faces)
+				draw_sequence.insert(pair<double, vector<int>>(cam->pos.distance_to(face_avg(face)), face));
+
+			// Draw faces
+			SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
+			for(auto it : draw_sequence){
+				vector<int> face = it.second;
+
+				for(int i = 0, len = face.size(); i< len; i++)
+					cam->drawLine(rend, vertices[face[i]], vertices[face[((i == len - 1) ? 0 : (i + 1))]]);
+			}
+
+			// Draw vertices
+			SDL_SetRenderDrawColor(rend, 0, 0xff, 0xff, 0xff);
+
+			for(coord vert : vertices){
+				pixel px = cam->vertex_screenspace(vert);
+
+				if(cam->pixel_visible(px))
+					SDL_RenderDrawPoint(rend, px.x, px.y);
+			}
+		}
+	};
+
 	virtual ~Scene3D(){}
 
 	virtual void draw(int ticks){
