@@ -293,7 +293,7 @@ public:
 	};
 
 	class Mesh : public Renderable {
-		vector<Scene3D::coord> vertices;
+		vector<coord> vertices;
 		list<vector<int>> faces;
 
 	public:
@@ -302,6 +302,11 @@ public:
 		{
 			this->vertices = vertices;
 			this->faces = faces;
+		}
+
+		void translate(coord delta){
+			for(coord &c : vertices)
+				c = c + delta;
 		}
 
 		// Find the average coordinate of all vectors in a face.

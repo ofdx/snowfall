@@ -86,17 +86,17 @@ class TestScene3D : public Scene3D {
 
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
-		cam = new Camera( { -2, 0.7, 0 }, { -1, 0, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+		cam = new Camera( { -6.7, 0.7, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
 
 		// Grid
 		{
-			for(int x = -10; x < 10; x++)
-				for(int z = -10; z < 10; z++){
+			for(double x = -10; x <= 10; x++)
+				for(double z = -10; z <= 10; z++){
 					vector<Scene3D::coord> coords {
-						{ x-0.5, 0, z-0.5 },
-						{ x+0.5, 0, z-0.5 },
-						{ x+0.5, 0, z+0.5 },
-						{ x-0.5, 0, z+0.5 }
+						{ x,   0, z   },
+						{ x+1, 0, z   },
+						{ x+1, 0, z+1 },
+						{ x,   0, z+1 }
 					};
 					list<vector<int>> faces {
 						{ 0, 1, 2, 3 }
@@ -107,25 +107,27 @@ public:
 				}
 		}
 
-		// 3D cube
+		// Some kinda church
 		{
-			vector<Scene3D::coord> cube_coords {
-				{ -5, 0, 5 },   // 0
-				{ -5, 0, 6 },   // 1
-				{ -4, 0, 6 },   // 2
-				{ -4, 0, 5 },   // 3
-				{ -5, 1, 5 },   // 4
-				{ -5, 1, 6 },   // 5
-				{ -4, 1, 6 },   // 6
-				{ -4, 1, 5 },   // 7
+			vector<Scene3D::coord> coords {
+				{ 0, 0, 0 },   // 0
+				{ 0, 0, 1 },   // 1
+				{ 1, 0, 1 },   // 2
+				{ 1, 0, 0 },   // 3
+				{ 0, 1, 0 },   // 4
+				{ 0, 1, 1 },   // 5
+				{ 1, 1, 1 },   // 6
+				{ 1, 1, 0 },   // 7
 
-				{ -2, 0.7, 5 }, // 8
-				{ -2, 0.7, 6 }, // 9
+				{ 3, 0.7, 0 }, // 8
+				{ 3, 0.7, 1 }, // 9
 
-				{ -2, 0, 5 },   // 10
-				{ -2, 0, 6 }    // 11
+				{ 3, 0, 0 },   // 10
+				{ 3, 0, 1 },   // 11
+
+				{ 0.5, 2.5, 0.5 } // 4 - 12
 			};
-			list<vector<int>> cube_faces {
+			list<vector<int>> faces {
 				{ 0, 1, 2, 3 },
 				{ 0, 1, 5, 4 },
 				{ 1, 2, 6, 5 },
@@ -135,33 +137,57 @@ public:
 
 				{ 6, 9, 8, 7 },  // Roof
 				{ 6, 9, 11, 2 }, // 6-wall
-				{ 7, 8, 10, 3 }  // 5-wall
+				{ 7, 8, 10, 3 }, // 5-wall
 
+
+				// Witch's Hat
+				{ 4, 5, 6, 7 }, // Base
+				{ 12, 4, 5 },
+				{ 12, 5, 6 },
+				{ 12, 6, 7 },
+				{ 12, 7, 4 }
 			};
-			Scene3D::Mesh *cube = new Scene3D::Mesh(rend, cam, cube_coords, cube_faces);
-			rendered_meshes.push_back(cube);
-			drawables.push_back(cube);
+
+			Scene3D::Mesh *obj = new Scene3D::Mesh(rend, cam, coords, faces);
+			obj->translate((coord){ -5, 0, -5 });
+
+			rendered_meshes.push_back(obj);
+			drawables.push_back(obj);
 		}
 
-		// Witch's Hat
+		// Doodad
 		{
 			vector<Scene3D::coord> coords {
-				{ -5, 1, 5 },      // 0
-				{ -5, 1, 6 },      // 1
-				{ -4, 1, 6 },      // 2
-				{ -4, 1, 5 },      // 3
-				{ -4.5, 2.5, 5.5 } // 4
+				{ 2, 0, 2 },       // 0
+				{-2, 0, 2 },       // 1
+				{-2, 0,-2 },       // 2
+				{ 2, 0,-2 },       // 3
+
+				{ 1.5, 2, 1.5 },   // 4
+				{-1.5, 2, 1.5 },   // 5
+				{-1.5, 2,-1.5 },   // 6
+				{ 1.5, 2,-1.5 },   // 7
+
+				{ 0, 4, 0 }        // 8
 			};
 			list<vector<int>> faces {
 				{ 0, 1, 2, 3 }, // Base
-				{ 4, 0, 1 },
-				{ 4, 1, 2 },
-				{ 4, 2, 3 },
-				{ 4, 3, 0 }
+
+				// Walls
+				{ 0, 4, 8, 5, 1 },
+				{ 1, 5, 8, 6, 2 },
+				{ 2, 6, 8, 7, 3 },
+				{ 3, 7, 8, 4, 0 },
+
+				// Mid-level ring
+				{ 4, 5, 6, 7 }
 			};
-			Scene3D::Mesh *hat = new Scene3D::Mesh(rend, cam, coords, faces);
-			rendered_meshes.push_back(hat);
-			drawables.push_back(hat);
+
+			Scene3D::Mesh *obj = new Scene3D::Mesh(rend, cam, coords, faces);
+			obj->translate((coord){ 5, 0, -2 } );
+
+			rendered_meshes.push_back(obj);
+			drawables.push_back(obj);
 		}
 
 		text_xyz = new PicoText(rend, (SDL_Rect){
