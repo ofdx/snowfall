@@ -31,30 +31,30 @@ public:
 		}
 
 		double operator - (const Radian &other){
-			double reverse = normalize(PI + value);
+			double reverse = normalize(PI + other.value);
 			bool left = false;
 
-			if(reverse > value){
+			if(reverse > other.value){
 				// Left is on the outside.
-				if((other.value <= value) || (other.value > reverse))
+				if((value <= other.value) || (value > reverse))
 					left = true;
 			} else {
 				// Left is on the inside.
-				if((other.value <= value) && (other.value > reverse))
+				if((value <= other.value) && (value > reverse))
 					left = true;
 			}
 
 			if(left){
-				if(other.value > value)
-					return -(value + (2 * PI) - other.value);
+				if(value > other.value)
+					return -(other.value + (2 * PI) - value);
 
-				return -(value - other.value);
+				return -(other.value - value);
 			}
 
-			if(other.value < value)
-				return ((2 * PI) - value + other.value);
+			if(value < other.value)
+				return ((2 * PI) - other.value + value);
 
-			return (other.value - value);
+			return (value - other.value);
 		}
 
 		inline double getValue(){
@@ -194,8 +194,8 @@ public:
 		pixel vertex_screenspace(coord vertex){
 			coord rel = vertex - pos;
 
-			double yaw = (point.angle_xz() - rel.angle_xz());
-			double pitch = (point.angle_y() - rel.angle_y());
+			double yaw = (rel.angle_xz() - point.angle_xz());
+			double pitch = (rel.angle_y() - point.angle_y());
 
 			return (pixel){
 				x: w - (int)((w / 2) + (yaw / (2 * maxangle_w) * w)),
@@ -219,8 +219,8 @@ public:
 
 			{
 				Radian point_xz = point.angle_xz();
-				double yaw_a = (point_xz - (a - pos).angle_xz());
-				double yaw_b = (point_xz - (b - pos).angle_xz());
+				double yaw_a = ((a - pos).angle_xz() - point_xz);
+				double yaw_b = ((b - pos).angle_xz() - point_xz);
 
 				if((yaw_a > (PI / 2)) && (yaw_b < -(PI / 2)))
 					return (id - 1);
