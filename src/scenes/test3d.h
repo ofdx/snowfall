@@ -120,12 +120,8 @@ class TestScene3D : public Scene3D {
 			for(auto it : draw_sequence){
 				vector<int> face = it.second;
 
-				for(int i = 0, len = face.size(); i< len; i++){
-					pixel px_a = cam->vertex_screenspace(vertices[face[i]]);
-					pixel px_b = cam->vertex_screenspace(vertices[face[((i == len - 1) ? 0 : (i + 1))]]);
-
-					cam->drawLine(rend, px_a, px_b);
-				}
+				for(int i = 0, len = face.size(); i< len; i++)
+					cam->drawLine(rend, vertices[face[i]], vertices[face[((i == len - 1) ? 0 : (i + 1))]]);
 			}
 
 			// Draw vertices
@@ -144,7 +140,7 @@ class TestScene3D : public Scene3D {
 
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
-		cam = new Camera( { -4.25, 1.5, 4 }, { 0, 0, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+		cam = new Camera( { -2, 0.7, 0 }, { -1, 0, 1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
 
 		// Grid
 		{
@@ -272,9 +268,18 @@ public:
 	}
 
 	void draw(int ticks){
-		text_xyz->set_message("c_pos: " + cam->pos.display());
-		text_pry->set_message("c_pnt: " + cam->point.display());
+		stringstream pry;
+		Scene3D::Radian
+			rpy(atan2(cam->point.y, sqrt(cam->point.z * cam->point.z + cam->point.x * cam->point.x))),
+			rpxz(atan2(cam->point.z, cam->point.x));
 
+		pry
+			<< "c_pnt: ("
+			<< RAD_TO_DEG(rpxz.getValue()) << ", "
+			<< RAD_TO_DEG(rpy.getValue()) << ")";
+
+		text_xyz->set_message("c_pos: " + cam->pos.display());
+		text_pry->set_message(pry.str());
 		Scene3D::draw(ticks);
 	}
 

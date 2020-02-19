@@ -2,10 +2,66 @@
 	3D Scene
 	mperron (2020)
 */
+#define RAD_TO_DEG(r) ((r) / PI * 180)
+
 class Scene3D : public Scene {
 private:
 
 public:
+	class Radian {
+		double value;
+
+	public:
+		static double normalize(double value){
+			while(value >= (2 * PI))
+				value -= (2 * PI);
+
+			while(value < 0)
+				value += (2 * PI);
+
+			return value;
+		}
+
+		Radian(double value){
+			this->value = normalize(value);
+		}
+
+		double operator + (const double &d){
+			return value + d;
+		}
+
+		double operator - (const Radian &other){
+			double reverse = normalize(PI + value);
+			bool left = false;
+
+			if(reverse > value){
+				// Left is on the outside.
+				if((other.value <= value) || (other.value > reverse))
+					left = true;
+			} else {
+				// Left is on the inside.
+				if((other.value <= value) && (other.value > reverse))
+					left = true;
+			}
+
+			if(left){
+				if(other.value > value)
+					return -(value + (2 * PI) - other.value);
+
+				return -(value - other.value);
+			}
+
+			if(other.value < value)
+				return ((2 * PI) - value + other.value);
+
+			return (other.value - value);
+		}
+
+		inline double getValue(){
+			return value;
+		}
+	};
+
 	struct coord {
 		double x, y, z;
 
@@ -15,18 +71,16 @@ public:
 			return sqrt((diff.x * diff.x) + (diff.z * diff.z) + (diff.y * diff.y));
 		}
 
-		double atan2p(double y, double x){
-			double a = atan2(y, x);
+		Radian angle_y(){
+			Radian r(atan2(y, sqrt((x * x) + (z * z))));
 
-			return ((a < 0) ? ((2 * PI) + a) : a);
+			return r;
 		}
 
-		double angle_y(){
-			return atan2p(y, sqrt((x * x) + (z * z)));
-		}
+		Radian angle_xz(){
+			Radian r(atan2(z, x));
 
-		double angle_xz(){
-			return atan2p(z, x);
+			return r;
 		}
 
 		coord operator / (const int &divisor){
@@ -127,12 +181,12 @@ public:
 			this->w = w;
 			this->h = h;
 
-			// Give whichever direction is larger a greater FOV.
+			// Give whichever direction is smaller a lesser FOV.
 			maxangle_w = maxangle_h = maxangle;
 			if(w > h){
-				maxangle_w = maxangle_w / h * w;
-			} else if (h > w){
 				maxangle_h = maxangle_h / w * h;
+			} else if (h > w){
+				maxangle_w = maxangle_w / h * w;
 			}
 		}
 
@@ -140,14 +194,8 @@ public:
 		pixel vertex_screenspace(coord vertex){
 			coord rel = vertex - pos;
 
-			double
-				point_xz = point.angle_xz(),
-				point_y = point.angle_y(),
-				rel_xz = rel.angle_xz(),
-				rel_y = rel.angle_y();
-
-			double yaw = (rel_xz - point_xz);
-			double pitch = (rel_y - point_y);
+			double yaw = (point.angle_xz() - rel.angle_xz());
+			double pitch = (point.angle_y() - rel.angle_y());
 
 			return (pixel){
 				x: w - (int)((w / 2) + (yaw / (2 * maxangle_w) * w)),
@@ -166,8 +214,22 @@ public:
 		}
 
 		// Draw a line on the screen to connect two pixels.
-		int drawLine(SDL_Renderer *rend, pixel from, pixel to){
+		int drawLine(SDL_Renderer *rend, coord a, coord b){
 			static int id = 0;
+
+			{
+				Radian point_xz = point.angle_xz();
+				double yaw_a = (point_xz - (a - pos).angle_xz());
+				double yaw_b = (point_xz - (b - pos).angle_xz());
+
+				if((yaw_a > (PI / 2)) && (yaw_b < -(PI / 2)))
+					return (id - 1);
+				if((yaw_b > (PI / 2)) && (yaw_a < -(PI / 2)))
+					return (id - 1);
+			}
+
+			pixel from = vertex_screenspace(a);
+			pixel to = vertex_screenspace(b);
 
 			double dx = to.x - from.x;
 			double dy = to.y - from.y;
@@ -210,16 +272,11 @@ public:
 		void pitch(double delta){
 			double y = point.angle_y() + delta;
 
-			if(y > (PI / 2))
-				y = (PI / 2);
-			if(y < -(PI / 2))
-				y = -(PI / 2);
-
 			point.y = sin(y);
 		}
 
 		void walk(double distance){
-			double heading = point.angle_xz();
+			double heading = point.angle_xz().getValue();
 
 			pos += (coord){ distance * cos(heading), 0, distance * sin(heading) };
 		}
