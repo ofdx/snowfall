@@ -168,6 +168,7 @@ public:
 
 	class Camera : public Clickable {
 		double maxangle_w, maxangle_h;
+		bool mlook_active = false;
 
 	public:
 		coord pos, point;
@@ -214,18 +215,14 @@ public:
 		}
 
 		// Draw a line on the screen to connect two pixels.
-		int drawLine(SDL_Renderer *rend, coord a, coord b){
-			static int id = 0;
-
+		void drawLine(SDL_Renderer *rend, coord a, coord b){
 			{
 				Radian point_xz = point.angle_xz();
 				double yaw_a = ((a - pos).angle_xz() - point_xz);
 				double yaw_b = ((b - pos).angle_xz() - point_xz);
 
-				if((yaw_a > (PI / 2)) && (yaw_b < -(PI / 2)))
-					return (id - 1);
-				if((yaw_b > (PI / 2)) && (yaw_a < -(PI / 2)))
-					return (id - 1);
+				if(((yaw_a > (PI / 2)) && (yaw_b < -(PI / 2))) || ((yaw_b > (PI / 2)) && (yaw_a < -(PI / 2))))
+					return;
 			}
 
 			pixel from = vertex_screenspace(a);
@@ -257,8 +254,6 @@ public:
 				x += dx;
 				y += dy;
 			}
-
-			return id++;
 		}
 
 		// Turn the camera the specified number of radians around the Y-axis.
@@ -279,6 +274,35 @@ public:
 			double heading = point.angle_xz().getValue();
 
 			pos += (coord){ distance * cos(heading), 0, distance * sin(heading) };
+		}
+
+		void mlook(bool active){
+			if(mlook_active != active)
+				SDL_SetRelativeMouseMode(active ? SDL_TRUE : SDL_FALSE);
+
+			mlook_active = active;
+		}
+		bool mlook_toggle(){
+			mlook(!mlook_active);
+
+			return mlook_active;
+		}
+
+		virtual void check_mouse(SDL_Event event){
+			switch(event.type){
+				case SDL_MOUSEMOTION:
+					if(mlook_active){
+						yaw(-(event.motion.xrel / (8.0 * render_scale)));
+						pitch(-(event.motion.yrel / (40.0 * render_scale)));
+					}
+					break;
+
+				case SDL_MOUSEBUTTONDOWN:
+				case SDL_MOUSEBUTTONUP:
+					if(event.button.button & SDL_BUTTON(SDL_BUTTON_RIGHT))
+						mlook((event.button.state == SDL_PRESSED));
+					break;
+			}
 		}
 	};
 

@@ -20,73 +20,12 @@ class TestScene3D : public Scene3D {
 		}
 	} *y_plus, *y_minus;
 
-	class CameraRotateButton : public Button {
-		Camera *cam;
-		double delta;
-
-	public:
-		CameraRotateButton(Camera *cam, double delta, SDL_Renderer *rend, int x, int y, string text) :
-			Button(rend, x, y, 1, text.length(), text)
-		{
-			this->cam = cam;
-			this->delta = delta;
-		}
-
-		void action(){
-			cam->yaw(delta);
-		}
-	} *xzr_plus, *xzr_minus;
-
-	class CameraPitchButton : public Button {
-		Camera *cam;
-		double delta;
-
-	public:
-		CameraPitchButton(Camera *cam, double delta, SDL_Renderer *rend, int x, int y, string text) :
-			Button(rend, x, y, 1, text.length(), text)
-		{
-			this->cam = cam;
-			this->delta = delta;
-		}
-
-		void action(){
-			cam->pitch(delta);
-		}
-	} *yr_plus, *yr_minus;;
-
-	class CameraMoveButton : public Button {
-		Camera *cam;
-		double dir, walk, fly;
-
-	public:
-		CameraMoveButton(Camera *cam, double dir, double walk, double fly, SDL_Renderer *rend, int x, int y, string text) :
-			Button(rend, x, y, 1, text.length(), text)
-		{
-			this->cam = cam;
-			this->dir = dir;
-			this->walk = walk;
-			this->fly = fly;
-		}
-
-		void action(){
-			if(dir)
-				cam->yaw(dir);
-
-			cam->walk(walk);
-			// cam->fly(fly);
-
-			if(dir)
-				cam->yaw(-dir);
-		}
-	} *xzw_plus, *xzw_minus, *strafe_right, *strafe_left;
-
 	Camera *cam;
-
 	list<Scene3D::Mesh*> rendered_meshes;
 
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
-		cam = new Camera( { -6.7, 0.7, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+		cam = new Camera( { -6.7, 0.5, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
 		clickables.push_back(cam);
 
 		// Grid
@@ -204,46 +143,18 @@ public:
 		drawables.push_back(text_pry);
 
 		// Camera control buttons
-		strafe_right = new CameraMoveButton(cam, -(PI / 2), 0.1, 0, rend, 30, 10, "SR");
-		strafe_left = new CameraMoveButton(cam, (PI / 2), 0.1, 0, rend, 10, 10, "SL");
-		drawables.push_back(strafe_right);
-		clickables.push_back(strafe_right);
-		drawables.push_back(strafe_left);
-		clickables.push_back(strafe_left);
-
-		y_plus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0.1, 0}, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 30, "Y+");
-		y_minus = new CameraControlButton(cam, (Scene3D::coord){ 0, -0.1, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 30, "Y-");
+		y_plus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0.1, 0}, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 10, "Y+");
+		y_minus = new CameraControlButton(cam, (Scene3D::coord){ 0, -0.1, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 10, "Y-");
 		drawables.push_back(y_plus);
 		clickables.push_back(y_plus);
 		drawables.push_back(y_minus);
 		clickables.push_back(y_minus);
-
-		xzw_plus = new CameraMoveButton(cam, 0, 0.1, 0, rend, 30, 50, "FW");
-		xzw_minus = new CameraMoveButton(cam, 0, -0.1, 0, rend, 10, 50, "BK");
-		drawables.push_back(xzw_plus);
-		clickables.push_back(xzw_plus);
-		drawables.push_back(xzw_minus);
-		clickables.push_back(xzw_minus);
-
-		xzr_plus = new CameraRotateButton(cam, PI / 20, rend, 10, 70, "<-");
-		xzr_minus = new CameraRotateButton(cam, -(PI / 20), rend, 30, 70, "->");
-		drawables.push_back(xzr_plus);
-		clickables.push_back(xzr_plus);
-		drawables.push_back(xzr_minus);
-		clickables.push_back(xzr_minus);
-
-		yr_plus = new CameraPitchButton(cam, PI / 20, rend, 30, 90, "UP");
-		yr_minus = new CameraPitchButton(cam, -(PI / 20), rend, 10, 90, "DN");
-		drawables.push_back(yr_plus);
-		clickables.push_back(yr_plus);
-		drawables.push_back(yr_minus);
-		clickables.push_back(yr_minus);
 	}
 
 	void draw(int ticks){
 		// Keyboard walking
 		{
-			double walk_speed = 5.0 * ticks / 1000.0; // 5 unit per second
+			double walk_speed = ticks / 1000.0 / 5.0;
 			coord walk_dir = { 0, 0, 0 };
 
 			// X represents fore/aft movement.
@@ -267,7 +178,7 @@ public:
 				if(dir)
 					cam->yaw(dir);
 
-				cam->walk(ticks / walk_speed);
+				cam->walk(ticks * walk_speed);
 
 				if(dir)
 					cam->yaw(-dir);
@@ -287,6 +198,17 @@ public:
 
 			if(turn_dir)
 				cam->yaw(turn_dir * turn_speed);
+		}
+
+		{
+			static bool toggle_mlook = false;
+
+			if(ctrl->keystate(SDLK_SPACE)){
+				if(!toggle_mlook){
+					toggle_mlook = true;
+					cam->mlook_toggle();
+				}
+			} else toggle_mlook = false;
 		}
 
 		/* on-screen debug */
@@ -312,16 +234,8 @@ public:
 		delete text_xyz;
 		delete text_pry;
 
-		delete strafe_right;
-		delete strafe_left;
 		delete y_plus;
 		delete y_minus;
-		delete xzw_plus;
-		delete xzw_minus;
-		delete yr_plus;
-		delete yr_minus;
-		delete xzr_plus;
-		delete xzr_minus;
 
 		for(Scene3D::Mesh *mesh : rendered_meshes)
 			delete mesh;
