@@ -87,6 +87,7 @@ class TestScene3D : public Scene3D {
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
 		cam = new Camera( { -6.7, 0.7, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+		clickables.push_back(cam);
 
 		// Grid
 		{
@@ -240,6 +241,55 @@ public:
 	}
 
 	void draw(int ticks){
+		// Keyboard walking
+		{
+			double walk_speed = 5.0 * ticks / 1000.0; // 5 unit per second
+			coord walk_dir = { 0, 0, 0 };
+
+			// X represents fore/aft movement.
+			if(ctrl->keystate(SDLK_w) || ctrl->keystate(SDLK_UP))
+				walk_dir.x += 1;
+
+			if(ctrl->keystate(SDLK_s) || ctrl->keystate(SDLK_DOWN))
+				walk_dir.x -= 1;
+
+			// Z represents left/right movement.
+			if(ctrl->keystate(SDLK_a))
+				walk_dir.z += 1;
+
+			if(ctrl->keystate(SDLK_d))
+				walk_dir.z -= 1;
+
+			// Walk if we have a direction
+			if(!(walk_dir == (coord){ 0, 0, 0})){
+				double dir = walk_dir.angle_xz().getValue();
+
+				if(dir)
+					cam->yaw(dir);
+
+				cam->walk(ticks / walk_speed);
+
+				if(dir)
+					cam->yaw(-dir);
+			}
+		}
+
+		// Keyboard turning
+		{
+			double turn_speed = PI * ticks / 1000.0; // 180 degrees per second
+			int turn_dir = 0;
+
+			if(ctrl->keystate(SDLK_LEFT))
+				turn_dir += 1;
+
+			if(ctrl->keystate(SDLK_RIGHT))
+				turn_dir -= 1;
+
+			if(turn_dir)
+				cam->yaw(turn_dir * turn_speed);
+		}
+
+		/* on-screen debug */
 		stringstream pry;
 		Scene3D::Radian
 			rpy(atan2(cam->point.y, sqrt(cam->point.z * cam->point.z + cam->point.x * cam->point.x))),
@@ -252,6 +302,9 @@ public:
 
 		text_xyz->set_message("c_pos: " + cam->pos.display());
 		text_pry->set_message(pry.str());
+		/* on-screen debug */
+
+
 		Scene3D::draw(ticks);
 	}
 

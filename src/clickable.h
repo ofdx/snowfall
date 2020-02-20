@@ -38,8 +38,8 @@ protected:
 	SDL_Rect click_region = { 0, 0, 0, 0 };
 
 public:
-	Clickable(){
-	}
+	Clickable(){}
+	virtual ~Clickable(){}
 
 	Clickable(SDL_Rect click_region){
 		this->click_region = click_region;

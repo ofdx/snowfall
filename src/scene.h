@@ -35,11 +35,16 @@ public:
 
 	class Controller : public Drawable {
 		Scene *scene_next = NULL;
+		map<int, bool> *keys = NULL;
 
 	public:
 		Scene *scene = NULL;
 
-		Controller(SDL_Renderer *rend) : Drawable(rend) {}
+		Controller(SDL_Renderer *rend, map<int, bool> *keys) :
+			Drawable(rend)
+		{
+			this->keys = keys;
+		}
 
 		SDL_Renderer *renderer(){
 			return rend;
@@ -73,11 +78,21 @@ public:
 			if(scene)
 				scene->check_mouse(event);
 		}
+
+		// Get the up/down state of a key. True if keydown.
+		bool keystate(int keysym){
+			return (*keys)[keysym];
+		}
 	};
 
 protected:
 	Controller *ctrl;
-	Scene(Controller *ctrl) : Drawable(ctrl->renderer()) {}
+
+	Scene(Controller *ctrl) :
+		Drawable(ctrl->renderer())
+	{
+		this->ctrl = ctrl;
+	}
 
 	class SceneFn {
 	public:

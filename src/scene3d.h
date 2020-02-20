@@ -5,8 +5,6 @@
 #define RAD_TO_DEG(r) ((r) / PI * 180)
 
 class Scene3D : public Scene {
-private:
-
 public:
 	class Radian {
 		double value;
@@ -168,14 +166,16 @@ public:
 		}
 	};
 
-	class Camera {
+	class Camera : public Clickable {
 		double maxangle_w, maxangle_h;
 
 	public:
 		coord pos, point;
 		int w, h;
 
-		Camera(coord pos, coord point, int w, int h, double maxangle){
+		Camera(coord pos, coord point, int w, int h, double maxangle) :
+			Clickable() // FIXME - use to get mouse events?
+		{
 			this->pos = pos;
 			this->point = point;
 			this->w = w;

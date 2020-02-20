@@ -88,7 +88,7 @@ int main(int argc, char **argv){
 	double offset_x = 0.0;
 	double offset_y = 0.0;
 
-	map<int, bool> keys;
+	map<int, bool> *keys = new map<int, bool>();
 
 	// Create pointers to scene constructors by name.
 	Scene::reg("intro", scene_create<IntroSplashScene>);
@@ -99,7 +99,7 @@ int main(int argc, char **argv){
 	Scene::reg("cards", scene_create<CardsScene>);
 	Scene::reg("test3d", scene_create<TestScene3D>);
 
-	Scene::Controller *ctrl = new Scene::Controller(rend);
+	Scene::Controller *ctrl = new Scene::Controller(rend, keys);
 	ctrl->set_scene(Scene::create(ctrl, "intro"));
 
 	// Intro splash
@@ -150,10 +150,10 @@ int main(int argc, char **argv){
 
 				// Map out keystates
 				case SDL_KEYUP:
-					keys[event.key.keysym.sym] = false;
+					(*keys)[event.key.keysym.sym] = false;
 					break;
 				case SDL_KEYDOWN:
-					keys[event.key.keysym.sym] = true;
+					(*keys)[event.key.keysym.sym] = true;
 					break;
 
 				case SDL_MOUSEMOTION:
@@ -173,16 +173,16 @@ int main(int argc, char **argv){
 		int delta_x = 0;
 
 		// Handle keys
-		if(keys[SDLK_DOWN] || keys[SDLK_s]){
+		if((*keys)[SDLK_DOWN] || (*keys)[SDLK_s]){
 			delta_y += 4;
 		}
-		if(keys[SDLK_UP] || keys[SDLK_w]){
+		if((*keys)[SDLK_UP] || (*keys)[SDLK_w]){
 			delta_y -= 4;
 		}
-		if(keys[SDLK_LEFT] || keys[SDLK_a]){
+		if((*keys)[SDLK_LEFT] || (*keys)[SDLK_a]){
 			delta_x -= 4;
 		}
-		if(keys[SDLK_RIGHT] || keys[SDLK_d]){
+		if((*keys)[SDLK_RIGHT] || (*keys)[SDLK_d]){
 			delta_x += 4;
 		}
 
@@ -209,30 +209,30 @@ int main(int argc, char **argv){
 		}
 
 		// Hold in place while space is held.
-		if(keys[SDLK_SPACE])
+		if((*keys)[SDLK_SPACE])
 			delta_x = delta_y = 0;
 
 		offset_x += delta_x;
 		offset_y += delta_y;
 
 		// Swap textures just for fun.
-		if(keys[SDLK_q] && !(dynamic_cast<LivingRoomScene*>(ctrl->scene)))
+		if((*keys)[SDLK_q] && !(dynamic_cast<LivingRoomScene*>(ctrl->scene)))
 			ctrl->set_scene(Scene::create(ctrl, "living"));
 
-		if(keys[SDLK_e] && !(dynamic_cast<GarageScene*>(ctrl->scene)))
+		if((*keys)[SDLK_e] && !(dynamic_cast<GarageScene*>(ctrl->scene)))
 			ctrl->set_scene(Scene::create(ctrl, "garage"));
 
-		if(keys[SDLK_1] && !(dynamic_cast<JeepScene*>(ctrl->scene)))
+		if((*keys)[SDLK_1] && !(dynamic_cast<JeepScene*>(ctrl->scene)))
 			ctrl->set_scene(Scene::create(ctrl, "jeep"));
 
 		// Test multiple mouse cursors.
-		if(keys[SDLK_2])
+		if((*keys)[SDLK_2])
 			mouse_tx = mouse_tx_2;
-		if(keys[SDLK_3])
+		if((*keys)[SDLK_3])
 			mouse_tx = mouse_tx_1;
 
 		// Toggle targeting reticule visibility.
-		if(keys[SDLK_r])
+		if((*keys)[SDLK_r])
 			render_reticule = !render_reticule;
 
 		// Draw the current scene.
