@@ -267,7 +267,15 @@ public:
 		void pitch(double delta){
 			double y = point.angle_y() + delta;
 
-			point.y = sin(y);
+			if(y < PI){
+				if(y > (PI / 8))
+					y = (PI / 8);
+			} else {
+				if(y < ((2 * PI) - (PI / 8)))
+					y = ((2 * PI) - (PI / 8));
+			}
+
+			point.y = sin(y) * sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
 		}
 
 		void walk(double distance){
@@ -292,7 +300,7 @@ public:
 			switch(event.type){
 				case SDL_MOUSEMOTION:
 					if(mlook_active){
-						yaw(-(event.motion.xrel / (8.0 * render_scale)));
+						yaw(-(event.motion.xrel / (16.0 * render_scale)));
 						pitch(-(event.motion.yrel / (40.0 * render_scale)));
 					}
 					break;
