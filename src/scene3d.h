@@ -325,15 +325,38 @@ public:
 	};
 
 	class Mesh : public Renderable {
+		struct Face {
+			vector<int> vertIds;
+
+			struct color {
+				unsigned char r, g, b, a;
+			} color_fill;
+
+			Face(vector<int> vertIds){
+				this->vertIds = vertIds;
+
+				// FIXME debug
+				color_fill = (color){
+					0xff, 0xff, 0xff,
+					0xff
+				};
+			}
+		};
+
 		vector<coord> vertices;
-		list<vector<int>> faces;
+		list<Face> faces;
 
 	public:
 		Mesh(SDL_Renderer *rend, Camera *cam, vector<coord> vertices, list<vector<int>> faces) :
 			Renderable(rend, cam)
 		{
 			this->vertices = vertices;
-			this->faces = faces;
+
+			for(vector<int> vertIds : faces){
+				Face f(vertIds);
+
+				this->faces.push_back(f);
+			}
 		}
 
 		void translate(coord delta){
@@ -358,19 +381,23 @@ public:
 
 		virtual void draw(int ticks){
 			// Sorted faces by distance to camera.
-			multimap<double, vector<int>, greater<double>> draw_sequence;
+			multimap<double, Face, greater<double>> draw_sequence;
 
 			// Sort faces by distance to the camera. Far faces are drawn first.
-			for(vector<int> face : faces)
-				draw_sequence.insert(pair<double, vector<int>>(cam->pos.distance_to(face_avg(face)), face));
+			for(Face face : faces)
+				draw_sequence.insert(pair<double, Face>(cam->pos.distance_to(face_avg(face.vertIds)), face));
 
 			// Draw faces
 			SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
 			for(auto it : draw_sequence){
-				vector<int> face = it.second;
+				Face face = it.second;
 
-				for(int i = 0, len = face.size(); i< len; i++)
-					cam->drawLine(rend, vertices[face[i]], vertices[face[((i == len - 1) ? 0 : (i + 1))]]);
+				for(int i = 0, len = face.vertIds.size(); i< len; i++)
+					cam->drawLine(
+						rend,
+						vertices[face.vertIds[i]],
+						vertices[face.vertIds[((i == len - 1) ? 0 : (i + 1))]]
+					);
 			}
 
 			// Draw vertices
