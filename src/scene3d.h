@@ -159,10 +159,15 @@ public:
 		}
 
 		bool operator >= (const pixel &other){
-			return ((x >= other.x) && (y >= other.y));
+			return !(*this < other);
 		}
 		bool operator < (const pixel &other){
-			return ((x < other.x) && (y < other.y));
+			long long lv = x, rv = other.x;
+
+			lv |= (((long long) y) << 32);
+			rv |= (((long long) other.y) << 32);
+
+			return (lv < rv);
 		}
 	};
 
@@ -175,7 +180,7 @@ public:
 		int w, h;
 
 		Camera(coord pos, coord point, int w, int h, double maxangle) :
-			Clickable() // FIXME - use to get mouse events?
+			Clickable()
 		{
 			this->pos = pos;
 			this->point = point;
