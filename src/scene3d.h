@@ -219,48 +219,6 @@ public:
 			return false;
 		}
 
-		// Draw a line on the screen to connect two pixels.
-		void drawLine(SDL_Renderer *rend, coord a, coord b){
-			{
-				Radian point_xz = point.angle_xz();
-				double yaw_a = ((a - pos).angle_xz() - point_xz);
-				double yaw_b = ((b - pos).angle_xz() - point_xz);
-
-				if(((yaw_a > (PI / 2)) && (yaw_b < -(PI / 2))) || ((yaw_b > (PI / 2)) && (yaw_a < -(PI / 2))))
-					return;
-			}
-
-			pixel from = vertex_screenspace(a);
-			pixel to = vertex_screenspace(b);
-
-			double dx = to.x - from.x;
-			double dy = to.y - from.y;
-			double step = ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
-			double x, y;
-
-			dx /= step;
-			dy /= step;
-
-			x = from.x;
-			y = from.y;
-
-			list<pixel> output;
-
-			pixel px_low = { 0, 0 };
-			pixel px_high = { w, h };
-
-			for(int i = 1; i <= step; i++){
-				pixel px = { (int)x, (int)y };
-
-				if((px >= px_low) && (px < px_high)){
-					SDL_RenderDrawPoint(rend, px.x, px.y);
-				}
-
-				x += dx;
-				y += dy;
-			}
-		}
-
 		// Turn the camera the specified number of radians around the Y-axis.
 		void yaw(double delta){
 			double xz = point.angle_xz() + delta;
@@ -351,6 +309,8 @@ public:
 		vector<coord> vertices;
 		list<Face> faces;
 
+		unordered_map<int, pixel> vertIdToScreen;
+
 	public:
 		Mesh(SDL_Renderer *rend, Camera *cam, vector<coord> vertices, list<vector<int>> faces) :
 			Renderable(rend, cam)
@@ -384,7 +344,59 @@ public:
 			return avg;
 		}
 
+		void populateScreenspace(){
+			for(int i = 0, len = vertices.size(); i < len; i++)
+				vertIdToScreen[i] = cam->vertex_screenspace(vertices[i]);
+		}
+
+		// Draw a line on the screen to connect two pixels.
+		void drawLine(int vert_a, int vert_b){
+			coord a = vertices[vert_a];
+			coord b = vertices[vert_b];
+
+			{
+				Radian point_xz = cam->point.angle_xz();
+				double yaw_a = ((a - cam->pos).angle_xz() - point_xz);
+				double yaw_b = ((b - cam->pos).angle_xz() - point_xz);
+
+				if(((yaw_a > (PI / 2)) && (yaw_b < -(PI / 2))) || ((yaw_b > (PI / 2)) && (yaw_a < -(PI / 2))))
+					return;
+			}
+
+			pixel from = vertIdToScreen[vert_a];
+			pixel to = vertIdToScreen[vert_b];
+
+			double dx = to.x - from.x;
+			double dy = to.y - from.y;
+			double step = ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
+			double x, y;
+
+			dx /= step;
+			dy /= step;
+
+			x = from.x;
+			y = from.y;
+
+			list<pixel> output;
+
+			pixel px_low = { 0, 0 };
+			pixel px_high = { SCREEN_WIDTH, SCREEN_HEIGHT };
+
+			for(int i = 1; i <= step; i++){
+				pixel px = { (int)x, (int)y };
+
+				if((px >= px_low) && (px < px_high)){
+					SDL_RenderDrawPoint(rend, px.x, px.y);
+				}
+
+				x += dx;
+				y += dy;
+			}
+		}
+
 		virtual void draw(int ticks){
+			populateScreenspace();
+
 			// Sorted faces by distance to camera.
 			multimap<double, Face, greater<double>> draw_sequence;
 
@@ -397,19 +409,19 @@ public:
 			for(auto it : draw_sequence){
 				Face face = it.second;
 
-				for(int i = 0, len = face.vertIds.size(); i< len; i++)
-					cam->drawLine(
-						rend,
-						vertices[face.vertIds[i]],
-						vertices[face.vertIds[((i == len - 1) ? 0 : (i + 1))]]
+				for(int i = 0, len = face.vertIds.size(); i< len; i++){
+					drawLine(
+						face.vertIds[i],
+						face.vertIds[((i == len - 1) ? 0 : (i + 1))]
 					);
+				}
+
 			}
 
 			// Draw vertices
 			SDL_SetRenderDrawColor(rend, 0, 0xff, 0xff, 0xff);
-
-			for(coord vert : vertices){
-				pixel px = cam->vertex_screenspace(vert);
+			for(int i = 0, len = vertices.size(); i < len; i++){
+				pixel px = vertIdToScreen[i];
 
 				if(cam->pixel_visible(px))
 					SDL_RenderDrawPoint(rend, px.x, px.y);
