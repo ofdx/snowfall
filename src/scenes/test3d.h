@@ -25,7 +25,7 @@ class TestScene3D : public Scene3D {
 
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
-		cam = new Camera( { -6.7, 0.5, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+		cam = new Camera( { -6.7, 1, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
 		clickables.push_back(cam);
 
 		// Grid
@@ -51,21 +51,21 @@ public:
 		{
 			vector<Scene3D::coord> coords {
 				{ 0, 0, 0 },   // 0
-				{ 0, 0, 1 },   // 1
-				{ 1, 0, 1 },   // 2
-				{ 1, 0, 0 },   // 3
-				{ 0, 1, 0 },   // 4
-				{ 0, 1, 1 },   // 5
-				{ 1, 1, 1 },   // 6
-				{ 1, 1, 0 },   // 7
+				{ 0, 0, 2 },   // 1
+				{ 2, 0, 2 },   // 2
+				{ 2, 0, 0 },   // 3
+				{ 0, 2, 0 },   // 4
+				{ 0, 2, 2 },   // 5
+				{ 2, 2, 2 },   // 6
+				{ 2, 2, 0 },   // 7
 
-				{ 3, 0.7, 0 }, // 8
-				{ 3, 0.7, 1 }, // 9
+				{ 6, 1.2, 0 }, // 8
+				{ 6, 1.2, 2 }, // 9
 
-				{ 3, 0, 0 },   // 10
-				{ 3, 0, 1 },   // 11
+				{ 6, 0, 0 },   // 10
+				{ 6, 0, 2 },   // 11
 
-				{ 0.5, 2.5, 0.5 } // 4 - 12
+				{ 1, 5, 1 } // 4 - 12
 			};
 			list<vector<int>> faces {
 				{ 0, 1, 2, 3 },

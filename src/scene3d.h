@@ -409,6 +409,21 @@ public:
 			for(auto it : draw_sequence){
 				Face face = it.second;
 
+				/*if(face.vertIds.size() == 4){
+					pixel px_a = vertIdToScreen[face.vertIds[0]];
+					pixel px_b = vertIdToScreen[face.vertIds[2]];
+
+					SDL_Rect rect = {
+						px_a.x, px_a.y,
+						px_b.x - px_a.x, px_b.y - px_a.y
+					};
+
+					SDL_SetRenderDrawColor(rend, 0xff, 0xff, 0xff, 0xff);
+					SDL_RenderFillRect(rend, &rect);
+
+					SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
+				}*/
+
 				for(int i = 0, len = face.vertIds.size(); i< len; i++){
 					drawLine(
 						face.vertIds[i],
