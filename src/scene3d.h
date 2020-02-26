@@ -172,10 +172,10 @@ public:
 	};
 
 	class Camera : public Clickable {
-		double maxangle_w, maxangle_h;
 		bool mlook_active = false;
 
 	public:
+		double maxangle_w, maxangle_h;
 		coord pos, point;
 		int w, h;
 
@@ -310,6 +310,16 @@ public:
 		list<Face> faces;
 
 		unordered_map<int, pixel> vertIdToScreen;
+		pixel *scanlines;
+		int y_min, y_max;
+
+		void resetScanlines(){
+			for(int line = y_min; line <= y_max; line++)
+				scanlines[line] = (pixel){ SCREEN_WIDTH, 0 };
+
+			y_min = SCREEN_HEIGHT - 1;
+			y_max = 0;
+		}
 
 	public:
 		Mesh(SDL_Renderer *rend, Camera *cam, vector<coord> vertices, list<vector<int>> faces) :
@@ -322,6 +332,14 @@ public:
 
 				this->faces.push_back(f);
 			}
+
+			scanlines = (pixel*) calloc(SCREEN_HEIGHT, sizeof(pixel));
+			y_min = 0;
+			y_max = SCREEN_HEIGHT - 1;
+			resetScanlines();
+		}
+		~Mesh(){
+			free(scanlines);
 		}
 
 		void translate(coord delta){
@@ -350,7 +368,7 @@ public:
 		}
 
 		// Draw a line on the screen to connect two pixels.
-		void drawLine(int vert_a, int vert_b, set<pixel> &pixel_verts, set<pixel> &pixel_border){
+		void drawLine(int vert_a, int vert_b){
 			coord a = vertices[vert_a];
 			coord b = vertices[vert_b];
 
@@ -359,15 +377,15 @@ public:
 				double yaw_a = ((a - cam->pos).angle_xz() - point_xz);
 				double yaw_b = ((b - cam->pos).angle_xz() - point_xz);
 
-				if(((yaw_a > (PI / 2)) && (yaw_b < -(PI / 2))) || ((yaw_b > (PI / 2)) && (yaw_a < -(PI / 2))))
+				if(
+					(abs(yaw_a) > (PI / 2) && abs(yaw_b) > cam->maxangle_w) ||
+					(abs(yaw_b) > (PI / 2) && abs(yaw_a) > cam->maxangle_w)
+				)
 					return;
 			}
 
 			pixel from = vertIdToScreen[vert_a];
 			pixel to = vertIdToScreen[vert_b];
-
-			pixel_verts.insert(from);
-			pixel_verts.insert(to);
 
 			double dx = to.x - from.x;
 			double dy = to.y - from.y;
@@ -387,7 +405,22 @@ public:
 
 			for(int i = 1; i <= step; i++){
 				pixel px = { (int)x, (int)y };
-				pixel_border.insert(px);
+
+				if(px.y > y_max)
+					y_max = px.y;
+				if(px.y < y_min)
+					y_min = px.y;
+
+				if((px.y >= 0) && (px.y < SCREEN_HEIGHT)){
+					pixel bounds = scanlines[px.y];
+
+					if(px.x < bounds.x)
+						bounds.x = px.x;
+					if(px.x > bounds.y)
+						bounds.y = px.x;
+
+					scanlines[px.y] = bounds;
+				}
 
 				if((px >= px_low) && (px < px_high))
 					SDL_RenderDrawPoint(rend, px.x, px.y);
@@ -408,98 +441,37 @@ public:
 				draw_sequence.insert(pair<double, Face>(cam->pos.distance_to(face_avg(face.vertIds)), face));
 
 			// Draw faces
-			SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
 			for(auto it : draw_sequence){
 				Face face = it.second;
-
-				set<pixel> pixel_verts;
-				set<pixel> pixel_border;
+				resetScanlines();
 
 				// Draw the border, and build a set of pixel coordinates that
 				// represent the outline.
+				SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
 				for(int i = 0, len = face.vertIds.size(); i< len; i++){
 					drawLine(
 						face.vertIds[i],
-						face.vertIds[((i == len - 1) ? 0 : (i + 1))],
-						pixel_verts,
-						pixel_border
+						face.vertIds[((i == len - 1) ? 0 : (i + 1))]
 					);
 				}
 
-				pixel px_low = { SCREEN_WIDTH, SCREEN_HEIGHT };
-				pixel px_high = { 0, 0 };
+				if(y_min < 0)
+					y_min = 0;
+				if(y_max > (SCREEN_HEIGHT - 1))
+					y_max = (SCREEN_HEIGHT - 1);
 
-				// Find the X and Y min and max values.
-				for(pixel px : pixel_border){
-					if(px.x < px_low.x)
-						px_low.x = px.x;
-					if(px.y < px_low.y)
-						px_low.y = px.y;
+				// Fill each line.
+				if(y_min < y_max){
+					SDL_SetRenderDrawColor(rend, 0x33, 0x66, 0x99, 0xff);
 
-					if(px.x > px_high.x)
-						px_high.x = px.x;
-					if(px.y > px_high.y)
-						px_high.y = px.y;
-				}
+					for(int line = y_min + 1; line < y_max; line++){
+						pixel bounds = scanlines[line];
 
-				// Scan and fill. Assumes that any given y-scanline has one
-				// contiguous fill section [x_start, x_finish].
-				if(px_low < px_high){
-					SDL_SetRenderDrawColor(rend, 0xff, 0xff, 0xff, 0xff);
-
-					// Make sure we start outside of the shape.
-					px_low.x -= 1;
-
-					for(int y = px_low.y; y <= px_high.y; y++){
-						int x_start = -1, x_finish = -1;
-
-						for(int x = px_low.x; x <= px_high.x; x++){
-							pixel px = { x, y };
-
-							// Find left pixel x_start
-							if(pixel_border.count(px)){
-								while(++x <= px_high.x){
-									px.x = x;
-
-									if(!pixel_border.count(px)){
-										x_start = x;
-										break;
-									}
-								}
-
-								// Find right pixel x_finish
-								if(x_start > 0){
-									while(++x <= px_high.x){
-										px.x = x;
-
-										if(pixel_border.count(px)){
-											x_finish = (x - 1);
-											break;
-										}
-									}
-								}
-
-								break;
-							}
-
-						}
-
-						// Found a left and right boundary for the fill, so
-						// actually fill this scanline.
-						if(x_finish > 0)
-							for(int x = x_start; x <= x_finish; x++)
-								SDL_RenderDrawPoint(rend, x, y);
+						for(int x = bounds.x + 1; x < bounds.y; x++)
+							if((x >= 0) && (x < SCREEN_WIDTH))
+								SDL_RenderDrawPoint(rend, x, line);
 					}
 				}
-			}
-
-			// Draw vertices
-			SDL_SetRenderDrawColor(rend, 0, 0xff, 0xff, 0xff);
-			for(int i = 0, len = vertices.size(); i < len; i++){
-				pixel px = vertIdToScreen[i];
-
-				if(cam->pixel_visible(px))
-					SDL_RenderDrawPoint(rend, px.x, px.y);
 			}
 		}
 	};

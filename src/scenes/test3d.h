@@ -71,7 +71,6 @@ public:
 				{ 0, 1, 2, 3 },
 				{ 0, 1, 5, 4 },
 				{ 1, 2, 6, 5 },
-				{ 2, 3, 7, 6 },
 				{ 0, 3, 7, 4 },
 				{ 4, 5, 6, 7 },
 
@@ -135,12 +134,14 @@ public:
 			SCREEN_WIDTH, 10
 		}, "");
 		drawables.push_back(text_xyz);
+		text_xyz->set_color(0xff, 0x0, 0xff);
 
 		text_pry = new PicoText(rend, (SDL_Rect){
 			5, SCREEN_HEIGHT - 10,
 			SCREEN_WIDTH, 10
 		}, "");
 		drawables.push_back(text_pry);
+		text_pry->set_color(0xff, 0x0, 0xff);
 
 		// Camera control buttons
 		y_plus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0.1, 0}, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 10, "Y+");
