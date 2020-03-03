@@ -43,7 +43,7 @@ public:
 					};
 					Scene3D::Mesh *mesh = new Scene3D::Mesh(rend, cam, coords, faces);
 					rendered_meshes.push_back(mesh);
-					drawables.push_back(mesh);
+					drawable_meshes.push_back(mesh);
 				}
 		}
 
@@ -91,7 +91,7 @@ public:
 			obj->translate((coord){ -5, 0, -5 });
 
 			rendered_meshes.push_back(obj);
-			drawables.push_back(obj);
+			drawable_meshes.push_back(obj);
 		}
 
 		// Doodad
@@ -126,7 +126,7 @@ public:
 			obj->translate((coord){ 5, 0, -2 } );
 
 			rendered_meshes.push_back(obj);
-			drawables.push_back(obj);
+			drawable_meshes.push_back(obj);
 		}
 
 		text_xyz = new PicoText(rend, (SDL_Rect){

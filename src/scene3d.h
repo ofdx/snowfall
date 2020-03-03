@@ -5,6 +5,7 @@
 #define RAD_TO_DEG(r) ((r) / PI * 180)
 
 class Scene3D : public Scene {
+
 public:
 	class Radian {
 		double value;
@@ -277,25 +278,25 @@ public:
 		}
 	};
 
-	class Renderable : public Drawable {
-	protected:
+	struct Renderable : public Drawable {
 		Camera *cam;
 
-	public:
 		Renderable(SDL_Renderer *rend, Camera *cam) : Drawable(rend) {
 			this->cam = cam;
 		}
 	};
 
-	class Mesh : public Renderable {
+	struct Mesh : public Renderable {
 		struct Face {
 			vector<int> vertIds;
+			Mesh *mesh;
 
 			struct color {
 				unsigned char r, g, b, a;
 			} color_fill;
 
-			Face(vector<int> vertIds){
+			Face(Mesh *mesh, vector<int> vertIds){
+				this->mesh = mesh;
 				this->vertIds = vertIds;
 
 				// FIXME debug
@@ -321,14 +322,13 @@ public:
 			y_max = 0;
 		}
 
-	public:
 		Mesh(SDL_Renderer *rend, Camera *cam, vector<coord> vertices, list<vector<int>> faces) :
 			Renderable(rend, cam)
 		{
 			this->vertices = vertices;
 
 			for(vector<int> vertIds : faces){
-				Face f(vertIds);
+				Face f(this, vertIds);
 
 				this->faces.push_back(f);
 			}
@@ -430,6 +430,48 @@ public:
 			}
 		}
 
+		void draw_face(Face face){
+			resetScanlines();
+
+			// Draw the border, and build a set of pixel coordinates that
+			// represent the outline.
+			SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
+			for(int i = 0, len = face.vertIds.size(); i< len; i++){
+				drawLine(
+					face.vertIds[i],
+					face.vertIds[((i == len - 1) ? 0 : (i + 1))]
+				);
+			}
+
+			if(y_min < 0)
+				y_min = 0;
+			if(y_max > (SCREEN_HEIGHT - 1))
+				y_max = (SCREEN_HEIGHT - 1);
+
+			// Fill each line.
+			if(y_min < y_max){
+				SDL_SetRenderDrawColor(rend, 0x33, 0x66, 0x99, 0xff);
+
+				for(int line = y_min + 1; line < y_max; line++){
+					pixel bounds = scanlines[line];
+
+					for(int x = bounds.x + 1; x < bounds.y; x++)
+						if((x >= 0) && (x < SCREEN_WIDTH))
+							SDL_RenderDrawPoint(rend, x, line);
+				}
+			}
+		}
+
+		static void draw_faces(multimap<double, Face, greater<double>> &draw_sequence){
+			// Draw faces
+			for(auto it : draw_sequence){
+				Face face = it.second;
+				Mesh *mesh = face.mesh;
+
+				mesh->draw_face(face);
+			}
+		}
+
 		virtual void draw(int ticks){
 			populateScreenspace();
 
@@ -438,43 +480,19 @@ public:
 
 			// Sort faces by distance to the camera. Far faces are drawn first.
 			for(Face face : faces)
-				draw_sequence.insert(pair<double, Face>(cam->pos.distance_to(face_avg(face.vertIds)), face));
+				draw_sequence.insert(
+					pair<double, Face>(
+						cam->pos.distance_to(face_avg(face.vertIds)),
+						face
+					)
+				);
 
-			// Draw faces
-			for(auto it : draw_sequence){
-				Face face = it.second;
-				resetScanlines();
-
-				// Draw the border, and build a set of pixel coordinates that
-				// represent the outline.
-				SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
-				for(int i = 0, len = face.vertIds.size(); i< len; i++){
-					drawLine(
-						face.vertIds[i],
-						face.vertIds[((i == len - 1) ? 0 : (i + 1))]
-					);
-				}
-
-				if(y_min < 0)
-					y_min = 0;
-				if(y_max > (SCREEN_HEIGHT - 1))
-					y_max = (SCREEN_HEIGHT - 1);
-
-				// Fill each line.
-				if(y_min < y_max){
-					SDL_SetRenderDrawColor(rend, 0x33, 0x66, 0x99, 0xff);
-
-					for(int line = y_min + 1; line < y_max; line++){
-						pixel bounds = scanlines[line];
-
-						for(int x = bounds.x + 1; x < bounds.y; x++)
-							if((x >= 0) && (x < SCREEN_WIDTH))
-								SDL_RenderDrawPoint(rend, x, line);
-					}
-				}
-			}
+			draw_faces(draw_sequence);
 		}
 	};
+
+	// Objects
+	list<Mesh*> drawable_meshes;
 
 	virtual ~Scene3D(){}
 
@@ -482,8 +500,27 @@ public:
 		// Clear the screen.
 		SDL_SetRenderDrawColor(rend, 0xad, 0x29, 0x10, 255);
 		SDL_RenderClear(rend);
+
+		// Draw 3D scene.
+		{
+			multimap<double, Mesh::Face, greater<double>> draw_sequence;
+
+			for(Mesh *mesh : drawable_meshes){
+				mesh->populateScreenspace();
+
+				for(Mesh::Face face : mesh->faces)
+					draw_sequence.insert(
+						pair<double, Mesh::Face>(
+							mesh->cam->pos.distance_to(mesh->face_avg(face.vertIds)),
+							face
+						)
+					);
+			}
+
+			Mesh::draw_faces(draw_sequence);
+		}
 		
-		// Draw everything.
+		// Draw everything else on top.
 		Scene::draw(ticks);
 	}
 
