@@ -11,8 +11,9 @@
 #include <vector>
 #include <set>
 
-#define SCREEN_WIDTH 256
+#define SCREEN_WIDTH  256
 #define SCREEN_HEIGHT 150
+#define SCREEN_FPS     60
 
 #define PI 3.14159265359
 
@@ -178,8 +179,13 @@ int main(int argc, char **argv){
 		// Flip the display buffer.
 		SDL_RenderPresent(rend);
 
-		// Delay to limit to approximately 60 fps.
-		SDL_Delay(1000 / 60);
+		// Delay to limit to approximately SCREEN_FPS.
+		{
+			int delta = (1000 / SCREEN_FPS) - (SDL_GetTicks() - ticks_now);
+
+			if(delta >= 0)
+				SDL_Delay(delta);
+		}
 
 		// Update tick counter.
 		ticks_last = ticks_now;
