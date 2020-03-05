@@ -1,4 +1,4 @@
-GCC_ARGS=-Wall --std=c++11 -s -Ibuild/
+GCC_ARGS=-Ofast -Wall --std=c++11 -s -Ibuild/
 MINGW=x86_64-w64-mingw32-g++
 
 all: build build/assetblob build/picogamo win

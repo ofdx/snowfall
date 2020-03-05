@@ -347,6 +347,37 @@ public:
 				c = c + delta;
 		}
 
+		// Find the nearest face to the camera.
+		coord face_min(vector<int> face, Camera *cam){
+			double min_dist;
+			coord min;
+
+			short verts = face.size();
+
+			if(verts){
+				bool first = true;
+
+				for(int vert : face){
+					coord v = vertices[vert];
+
+					if(first){
+						first = false;
+						min = v;
+						min_dist = cam->pos.distance_to(min);
+					} else {
+						double dist = cam->pos.distance_to(v);
+
+						if(dist < min_dist){
+							min_dist = dist;
+							min = v;
+						}
+					}
+				}
+			}
+
+			return min;
+		}
+
 		// Find the average coordinate of all vectors in a face.
 		coord face_avg(vector<int> face){
 			coord avg = { 0, 0, 0 };
@@ -452,7 +483,7 @@ public:
 			if(y_min < y_max){
 				SDL_SetRenderDrawColor(rend, 0x33, 0x66, 0x99, 0xff);
 
-				for(int line = y_min + 1; line < y_max; line++){
+				for(int line = y_min; line <= y_max; line++){
 					pixel bounds = scanlines[line];
 
 					for(int x = bounds.x + 1; x < bounds.y; x++)

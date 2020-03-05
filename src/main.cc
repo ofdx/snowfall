@@ -132,6 +132,16 @@ int main(int argc, char **argv){
 	// Load the first scene.
 	ctrl->set_scene(Scene::create(ctrl, "forest"));
 
+
+	// Frame timer for FPS display
+	int frame_counter = 0;
+	list<int> frame_times;
+	PicoText *frame_text = new PicoText(rend, (SDL_Rect){
+		SCREEN_WIDTH - 25, 5,
+		20, 10
+	}, "");
+
+
 	int ticks_last = SDL_GetTicks();
 	while(1){
 		int ticks_now = SDL_GetTicks();
@@ -176,15 +186,36 @@ int main(int argc, char **argv){
 		if(SDL_GetRelativeMouseMode() != SDL_TRUE)
 			SDL_RenderCopy(rend, mouse_tx, NULL, &mouse_cursor);
 
+		frame_text->draw(ticks);
+
 		// Flip the display buffer.
 		SDL_RenderPresent(rend);
 
 		// Delay to limit to approximately SCREEN_FPS.
 		{
-			int delta = (1000 / SCREEN_FPS) - (SDL_GetTicks() - ticks_now);
+			int frame_time = SDL_GetTicks() - ticks_now;
+			int delta = (1000 / SCREEN_FPS) - frame_time;
 
 			if(delta >= 0)
 				SDL_Delay(delta);
+
+			frame_times.push_back(frame_time);
+			if(frame_times.size() > 10)
+				frame_times.pop_front();
+
+			float avg = 0;
+
+			for(int t : frame_times)
+				avg += t;
+
+			avg /= frame_times.size();
+			if(avg == 0.0)
+				avg = 0.1;
+
+			if(frame_counter++ >= 10){
+				frame_text->set_message(to_string((int)(1000.0 / avg)));
+				frame_counter = 0;
+			}
 		}
 
 		// Update tick counter.
