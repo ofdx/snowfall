@@ -481,14 +481,22 @@ public:
 
 			// Fill each line.
 			if(y_min < y_max){
-				SDL_SetRenderDrawColor(rend, 0x33, 0x66, 0x99, 0xff);
-
 				for(int line = y_min; line <= y_max; line++){
 					pixel bounds = scanlines[line];
 
-					for(int x = bounds.x + 1; x < bounds.y; x++)
+					if((line == y_min) || (line == y_max))
+						SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
+
+					for(int x = bounds.x + 1; x < bounds.y; x++){
+						if(((x == (bounds.x + 1)) || (x == (bounds.y - 1))) && !((line == y_min) || (line == y_max)))
+							SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
+
 						if((x >= 0) && (x < SCREEN_WIDTH))
 							SDL_RenderDrawPoint(rend, x, line);
+
+						if((x == (bounds.x + 1)) && !((line == y_min) || (line == y_max)))
+							SDL_SetRenderDrawColor(rend, 0x33, 0x66, 0x99, 0xff);
+					}
 				}
 			}
 		}
