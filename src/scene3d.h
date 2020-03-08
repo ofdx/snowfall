@@ -163,12 +163,7 @@ public:
 			return !(*this < other);
 		}
 		bool operator < (const pixel &other){
-			long long lv = x, rv = other.x;
-
-			lv |= (((long long) y) << 32);
-			rv |= (((long long) other.y) << 32);
-
-			return (lv < rv);
+			return ((y == other.y) ? (x < other.y) : (y < other.y));
 		}
 	};
 
@@ -578,10 +573,5 @@ protected:
 
 // Required by STL <set>.
 inline bool operator < (const Scene3D::pixel &l, const Scene3D::pixel &r){
-	long long lv = l.x, rv = r.x;
-
-	lv |= (((long long) l.y) << 32);
-	rv |= (((long long) r.y) << 32);
-
-	return (lv < rv);
+	return ((l.y == r.y) ? (l.x < r.y) : (l.y < r.y));
 }
