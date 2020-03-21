@@ -266,8 +266,6 @@ public:
 
 				case SDL_MOUSEBUTTONDOWN:
 				case SDL_MOUSEBUTTONUP:
-					if(event.button.button & SDL_BUTTON(SDL_BUTTON_RIGHT))
-						mlook((event.button.state == SDL_PRESSED));
 					break;
 			}
 		}

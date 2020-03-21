@@ -291,6 +291,7 @@ public:
 				cam->yaw(turn_dir * turn_speed);
 		}
 
+		// Toggle mouse look. This needs to move into scene3d.h.
 		{
 			static bool toggle_mlook = false;
 
