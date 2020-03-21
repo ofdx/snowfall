@@ -80,6 +80,18 @@ int main(int argc, char **argv){
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 	SDL_RenderSetScale(rend, render_scale, render_scale);
 
+	// FIXME debug - dump graphics mode and texture formats
+	{
+		SDL_RendererInfo info;
+		SDL_GetRendererInfo(rend, &info);
+
+		cout << "Renderer name: " << info.name << endl;
+
+		cout << "Texture formats: " << endl;
+		for(unsigned int i = 0; i < info.num_texture_formats; i++)
+			cout << SDL_GetPixelFormatName(info.texture_formats[i]) << endl;
+	}
+
 	SDL_Texture *mouse_tx_1 = textureFromBmp(rend, "mouse/cursor.bmp", true);
 	SDL_Texture *mouse_tx_2 = textureFromBmp(rend, "mouse/cursor2.bmp", true);
 	SDL_Texture *mouse_tx = mouse_tx_1;

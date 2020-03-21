@@ -20,12 +20,11 @@ class TestScene3D : public Scene3D {
 		}
 	} *y_plus, *y_minus;
 
-	Camera *cam;
 	list<Scene3D::Mesh*> rendered_meshes;
 
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
-		cam = new Camera( { -6.7, 1, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+		cam = new Camera(rend, { -6.7, 1, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
 		clickables.push_back(cam);
 
 		// Grid
@@ -41,7 +40,7 @@ public:
 					list<vector<int>> faces {
 						{ 0, 1, 2, 3 }
 					};
-					Scene3D::Mesh *mesh = new Scene3D::Mesh(rend, cam, coords, faces);
+					Scene3D::Mesh *mesh = new Scene3D::Mesh(cam, coords, faces);
 					rendered_meshes.push_back(mesh);
 					drawable_meshes.push_back(mesh);
 				}
@@ -87,7 +86,7 @@ public:
 				{ 12, 7, 4 }
 			};
 
-			Scene3D::Mesh *obj = new Scene3D::Mesh(rend, cam, coords, faces);
+			Scene3D::Mesh *obj = new Scene3D::Mesh(cam, coords, faces);
 			obj->translate((coord){ -5, 0, -5 });
 
 			rendered_meshes.push_back(obj);
@@ -122,7 +121,7 @@ public:
 				{ 4, 5, 6, 7 }
 			};
 
-			Scene3D::Mesh *obj = new Scene3D::Mesh(rend, cam, coords, faces);
+			Scene3D::Mesh *obj = new Scene3D::Mesh(cam, coords, faces);
 			obj->translate((coord){ 5, 0, -2 } );
 
 			rendered_meshes.push_back(obj);
@@ -212,7 +211,7 @@ public:
 				{ 35, 36, 32 }
 			};
 
-			Scene3D::Mesh *obj = new Scene3D::Mesh(rend, cam, coords, faces);
+			Scene3D::Mesh *obj = new Scene3D::Mesh(cam, coords, faces);
 			obj->translate((coord){ 0, 0, 6 } );
 
 			rendered_meshes.push_back(obj);

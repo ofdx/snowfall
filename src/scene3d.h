@@ -174,10 +174,15 @@ public:
 		double maxangle_w, maxangle_h;
 		coord pos, point;
 		int w, h;
+		vector<unsigned char> screenspace_px;
+		SDL_Texture *screenspace_tx;
+		SDL_Renderer *rend;
 
-		Camera(coord pos, coord point, int w, int h, double maxangle) :
-			Clickable()
+		Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle) :
+			Clickable(),
+			screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0)
 		{
+			this->rend = rend;
 			this->pos = pos;
 			this->point = point;
 			this->w = w;
@@ -190,6 +195,12 @@ public:
 			} else if (h > w){
 				maxangle_w = maxangle_w / h * w;
 			}
+
+			screenspace_tx = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+		}
+
+		~Camera(){
+			SDL_DestroyTexture(screenspace_tx);
 		}
 
 		// Get the x,y coordinates of a pixel on screen to represent this visible vertex.
@@ -269,12 +280,22 @@ public:
 					break;
 			}
 		}
-	};
+
+		void draw_frame(){
+			SDL_UpdateTexture(screenspace_tx, NULL, &screenspace_px[0], SCREEN_WIDTH * 4);
+			SDL_RenderCopy(rend, screenspace_tx, NULL, NULL);
+
+			// Black out the sky.
+			const unsigned char fill[4] = { 0x10, 0x29, 0xad, 0xff };
+			for(int i = 0; i < (4 * SCREEN_WIDTH * SCREEN_HEIGHT); i++)
+				screenspace_px[i] = fill[i % 4];
+		}
+	} *cam;
 
 	struct Renderable : public Drawable {
 		Camera *cam;
 
-		Renderable(SDL_Renderer *rend, Camera *cam) : Drawable(rend) {
+		Renderable(Camera *cam) : Drawable(cam->rend) {
 			this->cam = cam;
 		}
 	};
@@ -315,8 +336,8 @@ public:
 			y_max = 0;
 		}
 
-		Mesh(SDL_Renderer *rend, Camera *cam, vector<coord> vertices, list<vector<int>> faces) :
-			Renderable(rend, cam)
+		Mesh(Camera *cam, vector<coord> vertices, list<vector<int>> faces) :
+			Renderable(cam)
 		{
 			this->vertices = vertices;
 
@@ -424,9 +445,6 @@ public:
 
 			list<pixel> output;
 
-			pixel px_low = { 0, 0 };
-			pixel px_high = { SCREEN_WIDTH, SCREEN_HEIGHT };
-
 			for(int i = 1; i <= step; i++){
 				pixel px = { (int)x, (int)y };
 
@@ -446,8 +464,14 @@ public:
 					scanlines[px.y] = bounds;
 				}
 
-				if((px >= px_low) && (px < px_high))
-					SDL_RenderDrawPoint(rend, px.x, px.y);
+				if((px.x >= 0) && (px.y >= 0) && (px.x < SCREEN_WIDTH) && (px.y < SCREEN_HEIGHT)){
+					const unsigned int offset = (SCREEN_WIDTH * px.y + px.x) * 4;
+
+					cam->screenspace_px[offset + 3] = 0xFF;
+					cam->screenspace_px[offset + 2] = 0x00;
+					cam->screenspace_px[offset + 1] = 0x00;
+					cam->screenspace_px[offset + 0] = 0x00;
+				}
 
 				x += dx;
 				y += dy;
@@ -476,19 +500,26 @@ public:
 			if(y_min < y_max){
 				for(int line = y_min; line <= y_max; line++){
 					pixel bounds = scanlines[line];
+					bool fill_black = false;
 
 					if((line == y_min) || (line == y_max))
-						SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
+						fill_black = true;
 
 					for(int x = bounds.x + 1; x < bounds.y; x++){
 						if(((x == (bounds.x + 1)) || (x == (bounds.y - 1))) && !((line == y_min) || (line == y_max)))
-							SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
+							fill_black = true;
 
-						if((x >= 0) && (x < SCREEN_WIDTH))
-							SDL_RenderDrawPoint(rend, x, line);
+						if((x >= 0) && (line >= 0) && (x < SCREEN_WIDTH) && (line < SCREEN_HEIGHT)){
+							const unsigned int offset = (SCREEN_WIDTH * line + x) * 4;
+
+							cam->screenspace_px[offset + 3] = 0xFF;
+							cam->screenspace_px[offset + 2] = (fill_black ? 0x00 : 0x33);
+							cam->screenspace_px[offset + 1] = (fill_black ? 0x00 : 0x66);
+							cam->screenspace_px[offset + 0] = (fill_black ? 0x00 : 0x99);
+						}
 
 						if((x == (bounds.x + 1)) && !((line == y_min) || (line == y_max)))
-							SDL_SetRenderDrawColor(rend, 0x33, 0x66, 0x99, 0xff);
+							fill_black = false;
 					}
 				}
 			}
@@ -551,6 +582,8 @@ public:
 
 			Mesh::draw_faces(draw_sequence);
 		}
+
+		cam->draw_frame();
 		
 		// Draw everything else on top.
 		Scene::draw(ticks);
