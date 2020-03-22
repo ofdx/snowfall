@@ -41,6 +41,8 @@ public:
 						{ 0, 1, 2, 3 }
 					};
 					Scene3D::Mesh *mesh = new Scene3D::Mesh(cam, coords, faces);
+					mesh->set_color_fill(0x33, 0x22, 0x11, 0xff);
+
 					rendered_meshes.push_back(mesh);
 					drawable_meshes.push_back(mesh);
 				}
@@ -213,6 +215,7 @@ public:
 
 			Scene3D::Mesh *obj = new Scene3D::Mesh(cam, coords, faces);
 			obj->translate((coord){ 0, 0, 6 } );
+			obj->set_color_fill(0x00, 0x66, 0x33, 0xff);
 
 			rendered_meshes.push_back(obj);
 			drawable_meshes.push_back(obj);

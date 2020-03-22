@@ -5,6 +5,8 @@
 #define RAD_TO_DEG(r) ((r) / PI * 180)
 #define SQUARE(x) (x * x)
 
+typedef unsigned char byte_t;
+
 class Scene3D : public Scene {
 
 public:
@@ -175,7 +177,7 @@ public:
 		double maxangle_w, maxangle_h;
 		coord pos, point;
 		int w, h;
-		vector<unsigned char> screenspace_px;
+		vector<byte_t> screenspace_px;
 		SDL_Texture *screenspace_tx;
 		SDL_Renderer *rend;
 
@@ -283,11 +285,12 @@ public:
 		}
 
 		void draw_frame(){
+			// Update the screen texture and draw it.
 			SDL_UpdateTexture(screenspace_tx, NULL, &screenspace_px[0], SCREEN_WIDTH * 4);
 			SDL_RenderCopy(rend, screenspace_tx, NULL, NULL);
 
-			// Black out the sky.
-			const unsigned char fill[4] = { 0x10, 0x29, 0xad, 0xff };
+			// Set the entire screen buffer to a background color.
+			const byte_t fill[4] = { 0x10, 0x29, 0xad, 0xff }; // BGRA
 			for(int i = 0; i < (4 * SCREEN_WIDTH * SCREEN_HEIGHT); i++)
 				screenspace_px[i] = fill[i % 4];
 		}
@@ -305,25 +308,27 @@ public:
 		struct Face {
 			vector<int> vertIds;
 			Mesh *mesh;
-
-			struct color {
-				unsigned char r, g, b, a;
-			} color_fill;
+			byte_t *fill;
 
 			Face(Mesh *mesh, vector<int> vertIds){
 				this->mesh = mesh;
 				this->vertIds = vertIds;
 
-				// FIXME debug
-				color_fill = (color){
-					0xff, 0xff, 0xff,
-					0xff
-				};
+				const byte_t fill_default[4] = { 0x99, 0x66, 0x33, 0xff };
+
+				fill = (byte_t*) calloc(4, sizeof(byte_t));
+				memcpy(fill, fill_default, 4);
+			}
+
+			void set_color_fill(byte_t r, byte_t g, byte_t b, byte_t a){
+				const byte_t color[4] = { b, g, r, a };
+
+				memcpy(fill, color, 4);
 			}
 		};
 
 		vector<coord> vertices;
-		list<Face> faces;
+		list<Face*> faces;
 
 		unordered_map<int, pixel> vertIdToScreen;
 		pixel *scanlines;
@@ -343,7 +348,7 @@ public:
 			this->vertices = vertices;
 
 			for(vector<int> vertIds : faces){
-				Face f(this, vertIds);
+				Face *f = new Face(this, vertIds);
 
 				this->faces.push_back(f);
 			}
@@ -355,11 +360,20 @@ public:
 		}
 		~Mesh(){
 			free(scanlines);
+
+			for(Face *f : faces)
+				delete f;
 		}
 
 		void translate(coord delta){
 			for(coord &c : vertices)
 				c = c + delta;
+		}
+
+		// Set the fill color for all faces of this Mesh.
+		void set_color_fill(byte_t r, byte_t g, byte_t b, byte_t a){
+			for(Face *face : faces)
+				face->set_color_fill(r, g, b, a);
 		}
 
 		// Find the nearest face to the camera.
@@ -446,6 +460,7 @@ public:
 
 			list<pixel> output;
 
+			const byte_t fill[4] = { 0x00, 0x00, 0x00, 0xff };
 			for(int i = 1; i <= step; i++){
 				pixel px = { (int)x, (int)y };
 
@@ -465,14 +480,8 @@ public:
 					scanlines[px.y] = bounds;
 				}
 
-				if((px.x >= 0) && (px.y >= 0) && (px.x < SCREEN_WIDTH) && (px.y < SCREEN_HEIGHT)){
-					const unsigned int offset = (SCREEN_WIDTH * px.y + px.x) * 4;
-
-					cam->screenspace_px[offset + 3] = 0xFF;
-					cam->screenspace_px[offset + 2] = 0x00;
-					cam->screenspace_px[offset + 1] = 0x00;
-					cam->screenspace_px[offset + 0] = 0x00;
-				}
+				if((px.x >= 0) && (px.y >= 0) && (px.x < SCREEN_WIDTH) && (px.y < SCREEN_HEIGHT))
+					memcpy(&cam->screenspace_px[(SCREEN_WIDTH * px.y + px.x) * 4], fill, 4);
 
 				x += dx;
 				y += dy;
@@ -499,6 +508,8 @@ public:
 
 			// Fill each line.
 			if(y_min < y_max){
+				const byte_t fill_black_data[4] = { 0x00, 0x00, 0x00, face.fill[3] };
+
 				for(int line = y_min; line <= y_max; line++){
 					pixel bounds = scanlines[line];
 					bool fill_black = false;
@@ -513,10 +524,7 @@ public:
 						if((x >= 0) && (line >= 0) && (x < SCREEN_WIDTH) && (line < SCREEN_HEIGHT)){
 							const unsigned int offset = (SCREEN_WIDTH * line + x) * 4;
 
-							cam->screenspace_px[offset + 3] = 0xFF;
-							cam->screenspace_px[offset + 2] = (fill_black ? 0x00 : 0x33);
-							cam->screenspace_px[offset + 1] = (fill_black ? 0x00 : 0x66);
-							cam->screenspace_px[offset + 0] = (fill_black ? 0x00 : 0x99);
+							memcpy(&cam->screenspace_px[offset], (fill_black ? fill_black_data : face.fill), 4);
 						}
 
 						if((x == (bounds.x + 1)) && !((line == y_min) || (line == y_max)))
@@ -543,11 +551,11 @@ public:
 			multimap<double, Face, greater<double>> draw_sequence;
 
 			// Sort faces by distance to the camera. Far faces are drawn first.
-			for(Face face : faces)
+			for(Face *face : faces)
 				draw_sequence.insert(
 					pair<double, Face>(
-						cam->pos.distance_to(face_avg(face.vertIds)),
-						face
+						cam->pos.distance_to(face_avg(face->vertIds)),
+						*face
 					)
 				);
 
@@ -568,11 +576,11 @@ public:
 			for(Mesh *mesh : drawable_meshes){
 				mesh->populateScreenspace();
 
-				for(Mesh::Face face : mesh->faces)
+				for(Mesh::Face *face : mesh->faces)
 					draw_sequence.insert(
 						pair<double, Mesh::Face>(
-							mesh->cam->pos.distance_to(mesh->face_avg(face.vertIds)),
-							face
+							mesh->cam->pos.distance_to(mesh->face_avg(face->vertIds)),
+							*face
 						)
 					);
 			}
