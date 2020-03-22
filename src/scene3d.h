@@ -3,6 +3,7 @@
 	mperron (2020)
 */
 #define RAD_TO_DEG(r) ((r) / PI * 180)
+#define SQUARE(x) (x * x)
 
 class Scene3D : public Scene {
 
@@ -67,11 +68,11 @@ public:
 		double distance_to(const coord &other){
 			coord diff = *this - other;
 
-			return sqrt((diff.x * diff.x) + (diff.z * diff.z) + (diff.y * diff.y));
+			return sqrt(SQUARE(diff.x) + SQUARE(diff.z) + SQUARE(diff.y));
 		}
 
 		Radian angle_y(){
-			Radian r(atan2(y, sqrt((x * x) + (z * z))));
+			Radian r(atan2(y, sqrt(SQUARE(x) + SQUARE(z))));
 
 			return r;
 		}
@@ -245,7 +246,7 @@ public:
 					y = ((2 * PI) - (PI / 8));
 			}
 
-			point.y = sin(y) * sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
+			point.y = sin(y) * sqrt(SQUARE(point.x) + SQUARE(point.y) + SQUARE(point.z));
 		}
 
 		void walk(double distance){
@@ -560,10 +561,6 @@ public:
 	virtual ~Scene3D(){}
 
 	virtual void draw(int ticks){
-		// Clear the screen.
-		SDL_SetRenderDrawColor(rend, 0xad, 0x29, 0x10, 255);
-		SDL_RenderClear(rend);
-
 		// Draw 3D scene.
 		{
 			multimap<double, Mesh::Face, greater<double>> draw_sequence;
