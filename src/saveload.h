@@ -6,20 +6,20 @@ struct player_data {
 	// Player character's name.
 	char name[16];
 
+	// Space for future strings. Clan name, class name, etc.
+	char padding1[4096];
+
 	// Identifier indicating which scene the player was on.
 	int scene_main, scene_sub;
 
 	// Player position in physical space.
 	double x, y, z;
 
-	// Space for future strings. Clan name, class name, etc.
-	char padding1[256];
-
 	// Player camera point direction vector.
 	double point_x, point_y, point_z;
 
 	// Space for future data.
-	char padding2[4072];
+	char padding2[4096];
 };
 
 // Write player data to SAVEDATA file. Returns true on success.

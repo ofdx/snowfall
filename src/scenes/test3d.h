@@ -15,9 +15,9 @@ class TestScene3D : public Scene3D {
 		void action(){
 			player_data data = {
 				"krak",
+				"",
 				1, 2,
 				cam->pos.x, cam->pos.y, cam->pos.z,
-				"",
 				cam->point.x, cam->point.y, cam->point.z
 			};
 
