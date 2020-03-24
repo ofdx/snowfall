@@ -21,6 +21,7 @@ using namespace std;
 int render_scale = 5;
 
 #include "loader.h"
+#include "saveload.h"
 #include "utility.h"
 #include "drawable.h"
 #include "clickable.h"

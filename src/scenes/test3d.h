@@ -1,6 +1,53 @@
 class TestScene3D : public Scene3D {
 	PicoText *text_xyz, *text_pry;
 
+	// FIXME debug
+	class TestSaveButton : public Button {
+		Camera *cam;
+
+	public:
+		TestSaveButton(Camera *cam) :
+			Button(cam->rend, 10, 30, 1, 4, string("save"))
+		{
+			this->cam = cam;
+		}
+
+		void action(){
+			player_data data = {
+				"krak",
+				1, 2,
+				cam->pos.x, cam->pos.y, cam->pos.z,
+				"",
+				cam->point.x, cam->point.y, cam->point.z
+			};
+
+			player_data_save(&data);
+		}
+	} *testSaveButton;
+
+	// FIXME debug
+	class TestLoadButton : public Button {
+		Camera *cam;
+
+	public:
+		TestLoadButton(Camera *cam) :
+			Button(cam->rend, 10, 50, 1, 4, string("load"))
+		{
+			this->cam = cam;
+		}
+
+		void action(){
+			player_data *data = player_data_read();
+
+			if(data){
+				cam->pos = (coord){ data->x, data->y, data->z };
+				cam->point = (coord){ data->point_x, data->point_y, data->point_z };
+			} else {
+				cout << "Failed to load player data!" << endl;
+			}
+		}
+	} *testLoadButton;
+
 	class CameraControlButton : public Button {
 		Camera *cam;
 		Scene3D::coord xform_pos, xform_point;
@@ -242,6 +289,16 @@ public:
 		clickables.push_back(y_plus);
 		drawables.push_back(y_minus);
 		clickables.push_back(y_minus);
+
+		// FIXME debug
+		testSaveButton = new TestSaveButton(cam);
+		drawables.push_back(testSaveButton);
+		clickables.push_back(testSaveButton);
+
+		// FIXME debug
+		testLoadButton = new TestLoadButton(cam);
+		drawables.push_back(testLoadButton);
+		clickables.push_back(testLoadButton);
 	}
 
 	void draw(int ticks){
@@ -330,6 +387,9 @@ public:
 
 		delete y_plus;
 		delete y_minus;
+
+		delete testSaveButton;
+		delete testLoadButton;
 
 		for(Scene3D::Mesh *mesh : rendered_meshes)
 			delete mesh;
