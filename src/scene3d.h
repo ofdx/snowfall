@@ -2,8 +2,9 @@
 	3D Scene
 	mperron (2020)
 */
-#define RAD_TO_DEG(r) ((r) / PI * 180)
-#define SQUARE(x) (x * x)
+#define RAD_TO_DEG(r)      ((r) / PI * 180)
+#define SQUARE(x)          ((x) * (x))
+#define MAX_DRAW_DISTANCE  100.0
 
 typedef unsigned char byte_t;
 
@@ -85,6 +86,14 @@ public:
 			return r;
 		}
 
+		coord operator * (const double &factor){
+			return (coord){
+				this->x * factor,
+				this->y * factor,
+				this->z * factor
+			};
+		}
+
 		coord operator / (const int &divisor){
 			return (coord){
 				this->x / divisor,
@@ -162,6 +171,10 @@ public:
 			return ret.str();
 		}
 
+		inline double distance_to(const pixel &other) const {
+			return sqrt((double)SQUARE(other.x - x) + (double)SQUARE(other.y - y));
+		}
+
 		bool operator >= (const pixel &other){
 			return !(*this < other);
 		}
@@ -178,12 +191,14 @@ public:
 		coord pos, point;
 		int w, h;
 		vector<byte_t> screenspace_px;
+		vector<double> screenspace_zb;
 		SDL_Texture *screenspace_tx;
 		SDL_Renderer *rend;
 
 		Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle) :
 			Clickable(),
-			screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0)
+			screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0),
+			screenspace_zb(SCREEN_WIDTH * SCREEN_HEIGHT, MAX_DRAW_DISTANCE)
 		{
 			this->rend = rend;
 			this->pos = pos;
@@ -291,8 +306,13 @@ public:
 
 			// Set the entire screen buffer to a background color.
 			const byte_t fill[4] = { 0x10, 0x29, 0xad, 0xff }; // BGRA
-			for(int i = 0; i < (4 * SCREEN_WIDTH * SCREEN_HEIGHT); i++)
+			for(int i = 0; i < (4 * SCREEN_WIDTH * SCREEN_HEIGHT); i++){
 				screenspace_px[i] = fill[i % 4];
+
+				if(!(i % 4))
+					screenspace_zb[i / 4] = MAX_DRAW_DISTANCE;
+			}
+
 		}
 	} *cam;
 
@@ -332,6 +352,7 @@ public:
 
 		unordered_map<int, pixel> vertIdToScreen;
 		pixel *scanlines;
+		coord *scanlines_coords;
 		int y_min, y_max;
 
 		void resetScanlines(){
@@ -354,12 +375,14 @@ public:
 			}
 
 			scanlines = (pixel*) calloc(SCREEN_HEIGHT, sizeof(pixel));
+			scanlines_coords = (coord*) calloc(SCREEN_HEIGHT * 2, sizeof(coord));
 			y_min = 0;
 			y_max = SCREEN_HEIGHT - 1;
 			resetScanlines();
 		}
 		~Mesh(){
 			free(scanlines);
+			free(scanlines_coords);
 
 			for(Face *f : faces)
 				delete f;
@@ -450,13 +473,13 @@ public:
 			double dx = to.x - from.x;
 			double dy = to.y - from.y;
 			double step = ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
-			double x, y;
 
 			dx /= step;
 			dy /= step;
 
-			x = from.x;
-			y = from.y;
+			double x = from.x;
+			double y = from.y;
+			coord coord_step = (b - a) / step;
 
 			list<pixel> output;
 
@@ -472,16 +495,29 @@ public:
 				if((px.y >= 0) && (px.y < SCREEN_HEIGHT)){
 					pixel bounds = scanlines[px.y];
 
-					if(px.x < bounds.x)
+					if(px.x < bounds.x){
 						bounds.x = px.x;
-					if(px.x > bounds.y)
+						scanlines_coords[2 * px.y] = a + (coord_step * i);
+					}
+
+					if(px.x > bounds.y){
 						bounds.y = px.x;
+						scanlines_coords[2 * px.y + 1] = a + (coord_step * i);
+					}
 
 					scanlines[px.y] = bounds;
 				}
 
-				if((px.x >= 0) && (px.y >= 0) && (px.x < SCREEN_WIDTH) && (px.y < SCREEN_HEIGHT))
-					memcpy(&cam->screenspace_px[(SCREEN_WIDTH * px.y + px.x) * 4], fill, 4);
+				if((px.x >= 0) && (px.y >= 0) && (px.x < SCREEN_WIDTH) && (px.y < SCREEN_HEIGHT)){
+					int offset = (SCREEN_WIDTH * px.y + px.x);
+					double distance = cam->pos.distance_to(a + (coord_step * i));
+
+					// Draw this pixel if there isn't already one in front of it.
+					if(distance < cam->screenspace_zb[offset]){
+						memcpy(&cam->screenspace_px[offset * 4], fill, 4);
+						cam->screenspace_zb[offset] = distance;
+					}
+				}
 
 				x += dx;
 				y += dy;
@@ -494,11 +530,11 @@ public:
 			// Draw the border, and build a set of pixel coordinates that
 			// represent the outline.
 			SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
-			for(int i = 0, len = face.vertIds.size(); i< len; i++){
-				drawLine(
-					face.vertIds[i],
-					face.vertIds[((i == len - 1) ? 0 : (i + 1))]
-				);
+			for(int i = 0, len = face.vertIds.size(); i < len; i++){
+				int fa = face.vertIds[i];
+				int fb = face.vertIds[((i == len - 1) ? 0 : (i + 1))];
+
+				drawLine(fa, fb);
 			}
 
 			if(y_min < 0)
@@ -512,6 +548,8 @@ public:
 
 				for(int line = y_min; line <= y_max; line++){
 					pixel bounds = scanlines[line];
+					coord coord_left = scanlines_coords[2 * line];
+					coord coord_delta = (scanlines_coords[2 * line + 1] - coord_left) / (bounds.y - bounds.x);
 					bool fill_black = false;
 
 					if((line == y_min) || (line == y_max))
@@ -522,9 +560,14 @@ public:
 							fill_black = true;
 
 						if((x >= 0) && (line >= 0) && (x < SCREEN_WIDTH) && (line < SCREEN_HEIGHT)){
-							const unsigned int offset = (SCREEN_WIDTH * line + x) * 4;
+							const unsigned int offset = (SCREEN_WIDTH * line + x);
+							double distance = cam->pos.distance_to(coord_left + (coord_delta * (x - bounds.x)));
 
-							memcpy(&cam->screenspace_px[offset], (fill_black ? fill_black_data : face.fill), 4);
+							// Draw this pixel if there isn't already one in front of it.
+							if(distance < cam->screenspace_zb[offset]){
+								memcpy(&cam->screenspace_px[offset * 4], (fill_black ? fill_black_data : face.fill), 4);
+								cam->screenspace_zb[offset] = distance;
+							}
 						}
 
 						if((x == (bounds.x + 1)) && !((line == y_min) || (line == y_max)))
@@ -534,32 +577,12 @@ public:
 			}
 		}
 
-		static void draw_faces(multimap<double, Face, greater<double>> &draw_sequence){
-			// Draw faces
-			for(auto it : draw_sequence){
-				Face face = it.second;
-				Mesh *mesh = face.mesh;
-
-				mesh->draw_face(face);
-			}
-		}
-
 		virtual void draw(int ticks){
 			populateScreenspace();
 
-			// Sorted faces by distance to camera.
-			multimap<double, Face, greater<double>> draw_sequence;
-
 			// Sort faces by distance to the camera. Far faces are drawn first.
 			for(Face *face : faces)
-				draw_sequence.insert(
-					pair<double, Face>(
-						cam->pos.distance_to(face_avg(face->vertIds)),
-						*face
-					)
-				);
-
-			draw_faces(draw_sequence);
+				draw_face(*face);
 		}
 	};
 
@@ -569,25 +592,12 @@ public:
 	virtual ~Scene3D(){}
 
 	virtual void draw(int ticks){
-		// Draw 3D scene.
-		{
-			multimap<double, Mesh::Face, greater<double>> draw_sequence;
+		// Draw each mesh. The order doesn't matter because the draw function
+		// has a z-buffer.
+		for(Mesh *mesh : drawable_meshes)
+			mesh->draw(ticks);
 
-			for(Mesh *mesh : drawable_meshes){
-				mesh->populateScreenspace();
-
-				for(Mesh::Face *face : mesh->faces)
-					draw_sequence.insert(
-						pair<double, Mesh::Face>(
-							mesh->cam->pos.distance_to(mesh->face_avg(face->vertIds)),
-							*face
-						)
-					);
-			}
-
-			Mesh::draw_faces(draw_sequence);
-		}
-
+		// Copy the frame buffer to the screen.
 		cam->draw_frame();
 		
 		// Draw everything else on top.
