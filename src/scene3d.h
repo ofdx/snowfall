@@ -388,6 +388,128 @@ public:
 				delete f;
 		}
 
+		// Load mesh data from an asset file.
+		static Mesh* load(Camera *cam, string fname){
+			FileLoader *fl = FileLoader::get(fname);
+
+			if(!fl)
+				return NULL;
+
+			stringstream data(fl->text());
+			vector<coord> vertices;
+			list<vector<int>> faces;
+			int vert_offset = 0;
+
+			// Match a string identifier opening a curly brace block
+			regex rx_mesh_start("\\s*(\\S*)\\s*\\{\\s*");
+			regex rx_mesh_end("\\s*\\}\\s*");
+			regex rx_braced("\\s*\\{([^\\}]*)\\}.*");
+			regex rx_spaced_numbers("[0-9.-]+");
+
+			// Parse all mesh data from resource.
+			string line;
+			while(getline(data, line)){
+				if(line.length() == 0)
+					continue;
+
+				// Out of data to parse.
+				if(line == "EOF")
+					break;
+
+				smatch sm;
+				if(regex_match(line, sm, rx_mesh_start)){
+					string mesh_name = sm[1];
+					int verts = 0;
+
+					while(getline(data, line)){
+						if(line.length() == 0)
+							continue;
+
+						// Move up a level.
+						if(regex_match(line, rx_mesh_end))
+							break;
+
+						// Found a new block element.
+						if(regex_match(line, sm, rx_mesh_start)){
+							string mesh_element = sm[1];
+
+							bool faces_element = false;
+							bool coords_element = false;
+
+							if(mesh_element == "coords")
+								coords_element = true;
+							else if(mesh_element == "faces")
+								faces_element = true;
+
+							while(getline(data, line)){
+								if(line.length() == 0)
+									continue;
+
+								// Move up a level.
+								if(regex_match(line, rx_mesh_end))
+									break;
+
+								if(coords_element || faces_element){
+									if(regex_match(line, sm, rx_braced)){
+										string braced_data = sm[1];
+
+										if(coords_element){
+											coord c;
+
+											for(int i = 0; (i < 3) && regex_search(braced_data, sm, rx_spaced_numbers); i++){
+												double pt = atof(sm[0].str().c_str());
+
+												switch(i){
+													case 0:
+														c.x = pt;
+														break;
+													case 1:
+														c.y = pt;
+														break;
+													case 2:
+														c.z = pt;
+														break;
+												}
+
+												braced_data = sm.suffix().str();
+											}
+
+											vertices.push_back(c);
+											verts++;
+										}
+
+										if(faces_element){
+											vector<int> vertIds;
+
+											while(regex_search(braced_data, sm, rx_spaced_numbers)){
+												vertIds.push_back(vert_offset + atoi(sm[0].str().c_str()));
+												braced_data = sm.suffix().str();
+											}
+
+											if(vertIds.size())
+												faces.push_back(vertIds);
+										}
+									}
+								}
+							}
+
+						}
+
+						if(line == "EOF"){
+							cout << "Model parsing error in [" << fname << "]" << endl;
+							return NULL;
+						}
+					}
+
+					vert_offset += verts;
+				}
+			}
+
+			// Keep track of face count and increment indices for subsequent meshes
+
+			return new Mesh(cam, vertices, faces);
+		}
+
 		void translate(const coord &delta){
 			for(coord &c : vertices)
 				c = c + delta;
