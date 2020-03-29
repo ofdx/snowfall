@@ -400,7 +400,6 @@ public:
 		}
 
 		void populateScreenspace(){
-			// FIXME - is this even valuable to cache?
 			for(int i = 0, len = vertices.size(); i < len; i++)
 				vertIdToScreen[i] = cam->vertex_screenspace(vertices[i]);
 		}
@@ -425,18 +424,15 @@ public:
 			pixel from = vertIdToScreen[vert_a];
 			pixel to = vertIdToScreen[vert_b];
 
+			double x = from.x;
+			double y = from.y;
 			double dx = to.x - from.x;
 			double dy = to.y - from.y;
 			double step = ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
+			coord coord_step = (b - a) / step;
 
 			dx /= step;
 			dy /= step;
-
-			double x = from.x;
-			double y = from.y;
-			coord coord_step = (b - a) / step;
-
-			list<pixel> output;
 
 			const byte_t fill[4] = { 0x00, 0x00, 0x00, 0xff };
 			for(int i = 1; i <= step; i++){

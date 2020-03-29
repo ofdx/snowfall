@@ -9,7 +9,6 @@
 #include <list>
 #include <cmath>
 #include <vector>
-#include <set>
 
 #define SCREEN_WIDTH  256
 #define SCREEN_HEIGHT 150
