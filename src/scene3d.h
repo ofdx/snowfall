@@ -567,8 +567,3 @@ protected:
 	Scene3D(Controller *ctrl) : Scene(ctrl) {}
 
 };
-
-// Required by STL <set>.
-inline bool operator < (const Scene3D::pixel &l, const Scene3D::pixel &r){
-	return ((l.y == r.y) ? (l.x < r.y) : (l.y < r.y));
-}
