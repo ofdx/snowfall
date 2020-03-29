@@ -29,11 +29,11 @@ public:
 			this->value = normalize(value);
 		}
 
-		double operator + (const double &d){
+		double operator + (const double &d) const {
 			return value + d;
 		}
 
-		double operator - (const Radian &other){
+		double operator - (const Radian &other) const {
 			double reverse = normalize(PI + other.value);
 			bool left = false;
 
@@ -60,7 +60,7 @@ public:
 			return (value - other.value);
 		}
 
-		inline double getValue(){
+		inline double getValue() const {
 			return value;
 		}
 	};
@@ -68,25 +68,25 @@ public:
 	struct coord {
 		double x, y, z;
 
-		double distance_to(const coord &other){
+		double distance_to(const coord &other) const {
 			coord diff = *this - other;
 
 			return sqrt(SQUARE(diff.x) + SQUARE(diff.z) + SQUARE(diff.y));
 		}
 
-		Radian angle_y(){
+		Radian angle_y() const {
 			Radian r(atan2(y, sqrt(SQUARE(x) + SQUARE(z))));
 
 			return r;
 		}
 
-		Radian angle_xz(){
+		Radian angle_xz() const {
 			Radian r(atan2(z, x));
 
 			return r;
 		}
 
-		coord operator * (const double &factor){
+		coord operator * (const double &factor) const {
 			return (coord){
 				this->x * factor,
 				this->y * factor,
@@ -94,7 +94,7 @@ public:
 			};
 		}
 
-		coord operator / (const int &divisor){
+		coord operator / (const int &divisor) const {
 			return (coord){
 				this->x / divisor,
 				this->y / divisor,
@@ -112,14 +112,14 @@ public:
 
 			return *this;
 		}
-		coord operator + (const coord &other){
+		coord operator + (const coord &other) const {
 			return (coord){
 				this->x + other.x,
 				this->y + other.y,
 				this->z + other.z
 			};
 		}
-		coord operator - (const coord &other){
+		coord operator - (const coord &other) const {
 			return (coord){
 				this->x - other.x,
 				this->y - other.y,
@@ -134,7 +134,7 @@ public:
 			return *this;
 		}
 
-		bool operator == (const coord &other){
+		bool operator == (const coord &other) const {
 			return (
 				(this->x == other.x) &&
 				(this->y == other.y) &&
@@ -142,7 +142,7 @@ public:
 			);
 		}
 
-		string display(){
+		string display() const {
 			stringstream ret;
 
 			ret
@@ -159,7 +159,7 @@ public:
 	struct pixel {
 		int x, y;
 
-		string display(){
+		string display() const {
 			stringstream ret;
 
 			ret
@@ -175,10 +175,10 @@ public:
 			return sqrt((double)SQUARE(other.x - x) + (double)SQUARE(other.y - y));
 		}
 
-		bool operator >= (const pixel &other){
+		bool operator >= (const pixel &other) const {
 			return !(*this < other);
 		}
-		bool operator < (const pixel &other){
+		bool operator < (const pixel &other) const {
 			return ((y == other.y) ? (x < other.y) : (y < other.y));
 		}
 	};
@@ -222,7 +222,7 @@ public:
 		}
 
 		// Get the x,y coordinates of a pixel on screen to represent this visible vertex.
-		pixel vertex_screenspace(coord vertex){
+		pixel vertex_screenspace(const coord &vertex) const {
 			coord rel = vertex - pos;
 
 			double yaw = (rel.angle_xz() - point.angle_xz());
@@ -234,7 +234,7 @@ public:
 			};
 		}
 
-		bool pixel_visible(pixel px){
+		bool pixel_visible(const pixel &px) const {
 			if(
 				(px.x >= 0) && (px.x < w) &&
 				(px.y >= 0) && (px.y < h)
@@ -245,14 +245,14 @@ public:
 		}
 
 		// Turn the camera the specified number of radians around the Y-axis.
-		void yaw(double delta){
+		void yaw(const double &delta){
 			double xz = point.angle_xz() + delta;
 
 			point = (coord){ cos(xz), point.y, sin(xz) };
 		}
 
 		// Pitch the camera up or down the specified number of radians.
-		void pitch(double delta){
+		void pitch(const double &delta){
 			double y = point.angle_y() + delta;
 
 			if(y < PI){
@@ -266,13 +266,13 @@ public:
 			point.y = sin(y) * sqrt(SQUARE(point.x) + SQUARE(point.y) + SQUARE(point.z));
 		}
 
-		void walk(double distance){
+		void walk(const double &distance){
 			double heading = point.angle_xz().getValue();
 
 			pos += (coord){ distance * cos(heading), 0, distance * sin(heading) };
 		}
 
-		void mlook(bool active){
+		void mlook(const bool &active){
 			if(mlook_active != active)
 				SDL_SetRelativeMouseMode(active ? SDL_TRUE : SDL_FALSE);
 
@@ -340,7 +340,7 @@ public:
 				memcpy(fill, fill_default, 4);
 			}
 
-			void set_color_fill(byte_t r, byte_t g, byte_t b, byte_t a){
+			void set_color_fill(const byte_t &r, const byte_t &g, const byte_t &b, const byte_t &a){
 				const byte_t color[4] = { b, g, r, a };
 
 				memcpy(fill, color, 4);
@@ -388,70 +388,25 @@ public:
 				delete f;
 		}
 
-		void translate(coord delta){
+		void translate(const coord &delta){
 			for(coord &c : vertices)
 				c = c + delta;
 		}
 
 		// Set the fill color for all faces of this Mesh.
-		void set_color_fill(byte_t r, byte_t g, byte_t b, byte_t a){
+		void set_color_fill(const byte_t &r, const byte_t &g, const byte_t &b, const byte_t &a){
 			for(Face *face : faces)
 				face->set_color_fill(r, g, b, a);
 		}
 
-		// Find the nearest face to the camera.
-		coord face_min(vector<int> face, Camera *cam){
-			double min_dist;
-			coord min;
-
-			short verts = face.size();
-
-			if(verts){
-				bool first = true;
-
-				for(int vert : face){
-					coord v = vertices[vert];
-
-					if(first){
-						first = false;
-						min = v;
-						min_dist = cam->pos.distance_to(min);
-					} else {
-						double dist = cam->pos.distance_to(v);
-
-						if(dist < min_dist){
-							min_dist = dist;
-							min = v;
-						}
-					}
-				}
-			}
-
-			return min;
-		}
-
-		// Find the average coordinate of all vectors in a face.
-		coord face_avg(vector<int> face){
-			coord avg = { 0, 0, 0 };
-			short verts = face.size();
-
-			if(verts){
-				for(int vert : face)
-					avg += vertices[vert];
-
-				avg /= verts;
-			}
-
-			return avg;
-		}
-
 		void populateScreenspace(){
+			// FIXME - is this even valuable to cache?
 			for(int i = 0, len = vertices.size(); i < len; i++)
 				vertIdToScreen[i] = cam->vertex_screenspace(vertices[i]);
 		}
 
 		// Draw a line on the screen to connect two pixels.
-		void drawLine(int vert_a, int vert_b){
+		void drawLine(const int &vert_a, const int &vert_b){
 			coord a = vertices[vert_a];
 			coord b = vertices[vert_b];
 
@@ -524,18 +479,14 @@ public:
 			}
 		}
 
-		void draw_face(Face face){
+		void draw_face(const Face &face){
 			resetScanlines();
 
 			// Draw the border, and build a set of pixel coordinates that
 			// represent the outline.
 			SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
-			for(int i = 0, len = face.vertIds.size(); i < len; i++){
-				int fa = face.vertIds[i];
-				int fb = face.vertIds[((i == len - 1) ? 0 : (i + 1))];
-
-				drawLine(fa, fb);
-			}
+			for(int i = 0, len = face.vertIds.size(); i < len; i++)
+				drawLine(face.vertIds[i], face.vertIds[((i == len - 1) ? 0 : (i + 1))]);
 
 			if(y_min < 0)
 				y_min = 0;
