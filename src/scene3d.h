@@ -195,6 +195,8 @@ public:
 		SDL_Texture *screenspace_tx;
 		SDL_Renderer *rend;
 
+		bool wireframe = false;
+
 		Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle) :
 			Clickable(),
 			screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0),
@@ -646,7 +648,7 @@ public:
 							double distance = cam->pos.distance_to(coord_left + (coord_delta * (x - bounds.x)));
 
 							// Draw this pixel if there isn't already one in front of it.
-							if(distance < cam->screenspace_zb[offset]){
+							if(!cam->wireframe && (distance < cam->screenspace_zb[offset])){
 								memcpy(&cam->screenspace_px[offset * 4], (fill_black ? fill_black_data : face.fill), 4);
 								cam->screenspace_zb[offset] = distance;
 							}

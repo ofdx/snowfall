@@ -175,6 +175,18 @@ public:
 			} else toggle_mlook = false;
 		}
 
+		// Toggle face filling, leaving just a wireframe border around faces.
+		{
+			static bool toggle_wireframe = false;
+
+			if(ctrl->keystate(SDLK_f)){
+				if(!toggle_wireframe){
+					toggle_wireframe = true;
+					cam->wireframe = !cam->wireframe;
+				}
+			} else toggle_wireframe = false;
+		}
+
 		/* on-screen debug */
 		stringstream pry;
 		Scene3D::Radian
