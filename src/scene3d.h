@@ -330,14 +330,10 @@ public:
 			Mesh *mesh;
 			byte_t *fill;
 
-			Face(Mesh *mesh, vector<int> vertIds){
-				this->mesh = mesh;
+			Face(vector<int> vertIds, const byte_t fill[4]){
 				this->vertIds = vertIds;
-
-				const byte_t fill_default[4] = { 0x99, 0x66, 0x33, 0xff };
-
-				fill = (byte_t*) calloc(4, sizeof(byte_t));
-				memcpy(fill, fill_default, 4);
+				this->fill = (byte_t*) calloc(4, sizeof(byte_t));
+				memcpy(this->fill, fill, 4);
 			}
 
 			void set_color_fill(const byte_t &r, const byte_t &g, const byte_t &b, const byte_t &a){
@@ -363,15 +359,14 @@ public:
 			y_max = 0;
 		}
 
-		Mesh(Camera *cam, vector<coord> vertices, list<vector<int>> faces) :
+		Mesh(Camera *cam, vector<coord> vertices, list<Face*> faces) :
 			Renderable(cam)
 		{
 			this->vertices = vertices;
 
-			for(vector<int> vertIds : faces){
-				Face *f = new Face(this, vertIds);
-
-				this->faces.push_back(f);
+			for(Face *face : faces){
+				face->mesh = this;
+				this->faces.push_back(face);
 			}
 
 			scanlines = (pixel*) calloc(SCREEN_HEIGHT, sizeof(pixel));
@@ -397,14 +392,15 @@ public:
 
 			stringstream data(fl->text());
 			vector<coord> vertices;
-			list<vector<int>> faces;
+			list<Face*> faces;
 			int vert_offset = 0;
 
 			// Match a string identifier opening a curly brace block
 			regex rx_mesh_start("\\s*(\\S*)\\s*\\{\\s*");
 			regex rx_mesh_end("\\s*\\}\\s*");
-			regex rx_braced("\\s*\\{([^\\}]*)\\}.*");
+			regex rx_braced("\\s*\\{([^\\}]*)\\}(.*)");
 			regex rx_spaced_numbers("[0-9.-]+");
+			regex rx_rgba(".*([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}).*");
 
 			// Parse all mesh data from resource.
 			string line;
@@ -452,6 +448,7 @@ public:
 								if(coords_element || faces_element){
 									if(regex_match(line, sm, rx_braced)){
 										string braced_data = sm[1];
+										string braced_data_extra = sm[2];
 
 										if(coords_element){
 											coord c;
@@ -480,14 +477,30 @@ public:
 
 										if(faces_element){
 											vector<int> vertIds;
+											byte_t color[4];
+
+											// Get the fill color for this face.
+											if(regex_match(braced_data_extra, sm, rx_rgba)){
+												for(int i = 0; i < 4; i++){
+													unsigned char color_value;
+													stringstream color_string;
+
+													color_string << hex << sm[i + 1];
+													color_string >> color_value;
+
+													color[i] = color_value;
+												}
+											}
 
 											while(regex_search(braced_data, sm, rx_spaced_numbers)){
 												vertIds.push_back(vert_offset + atoi(sm[0].str().c_str()));
 												braced_data = sm.suffix().str();
 											}
 
-											if(vertIds.size())
-												faces.push_back(vertIds);
+											if(vertIds.size()){
+												Face *face = new Face(vertIds, color);
+												faces.push_back(face);
+											}
 										}
 									}
 								}
@@ -550,7 +563,7 @@ public:
 			double y = from.y;
 			double dx = to.x - from.x;
 			double dy = to.y - from.y;
-			double step = ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
+			double step = 2 * ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
 			coord coord_step = (b - a) / step;
 
 			dx /= step;
@@ -558,7 +571,7 @@ public:
 
 			const byte_t fill[4] = { 0x00, 0x00, 0x00, 0xff };
 			for(int i = 1; i <= step; i++){
-				pixel px = { (int)x, (int)y };
+				pixel px = cam->vertex_screenspace(a + (coord_step * i));
 
 				if(px.y > y_max)
 					y_max = px.y;

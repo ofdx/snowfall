@@ -24,20 +24,34 @@ with open(os.path.splitext(bpy.data.filepath)[0] + '.txt', 'w') as fs:
                 for v in obdata.vertices:
                     # Apply the object's translations
                     co = obj.matrix_world * v.co
-                    pfs(fs, '\t\t{{ {:0.3f} {:0.3f} {:0.3f} }} # Vert {:03d}\n'.format(co.x, co.z, co.y, v.index))
+                    pfs(fs, '\t\t{{ {:0.3f} {:0.3f} {:0.3f} }} # Vert {:3d}\n'.format(co.x, co.z, co.y, v.index))
 
                 pfs(fs, '\t}\n')
 
+
+                # Find fill color from material
+                try:
+                    color = obj.active_material.diffuse_color
+
+                    # RGBA
+                    fill = '{:02x}{:02x}{:02x}ff'.format(
+                        (int)(color[0] * 0xff),
+                        (int)(color[1] * 0xff),
+                        (int)(color[2] * 0xff)
+                    )
+                except Exception as e:
+                    # A nice default blue color.
+                    fill = "336699ff"
+
                 # Faces
-                fill = "222222ff" # RGBA
                 pfs(fs, '\tfaces {\n')
                 for f in obdata.polygons:
                     pfs(fs, '\t\t{ ')
 
                     for v in f.vertices:
-                        pfs(fs, '{:03d} '.format(v))
+                        pfs(fs, '{:3d} '.format(v))
 
-                    pfs(fs, '}} {} # Face {:03d}\n'.format(fill, f.index))
+                    pfs(fs, '}} {} # Face {:3d}\n'.format(fill, f.index))
                 pfs(fs, '\t}\n');
                 pfs(fs, '}\n\n')
         except:
