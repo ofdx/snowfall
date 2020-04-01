@@ -188,8 +188,10 @@ public:
 		bool mlook_active = false;
 
 	public:
-		double maxangle_w, maxangle_h;
 		coord pos, point;
+		Radian point_xz = 0, point_y = 0;
+
+		double maxangle_w, maxangle_h;
 		int w, h;
 		vector<byte_t> screenspace_px;
 		vector<double> screenspace_zb;
@@ -218,6 +220,7 @@ public:
 			}
 
 			screenspace_tx = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+			cache();
 		}
 
 		~Camera(){
@@ -228,8 +231,8 @@ public:
 		pixel vertex_screenspace(const coord &vertex) const {
 			coord rel = vertex - pos;
 
-			double yaw = (rel.angle_xz() - point.angle_xz());
-			double pitch = (rel.angle_y() - point.angle_y());
+			double yaw = (rel.angle_xz() - point_xz);
+			double pitch = (rel.angle_y() - point_y);
 
 			return (pixel){
 				x: w - (int)((w / 2) + (yaw / (2 * maxangle_w) * w)),
@@ -249,14 +252,15 @@ public:
 
 		// Turn the camera the specified number of radians around the Y-axis.
 		void yaw(const double &delta){
-			double xz = point.angle_xz() + delta;
+			double xz = point_xz + delta;
 
 			point = (coord){ cos(xz), point.y, sin(xz) };
+			cache();
 		}
 
 		// Pitch the camera up or down the specified number of radians.
 		void pitch(const double &delta){
-			double y = point.angle_y() + delta;
+			double y = point_y + delta;
 
 			if(y < PI){
 				if(y > MAX_CAM_PITCH)
@@ -267,12 +271,14 @@ public:
 			}
 
 			point.y = sin(y) * sqrt(SQUARE(point.x) + SQUARE(point.y) + SQUARE(point.z));
+			cache();
 		}
 
 		void walk(const double &distance){
-			double heading = point.angle_xz().getValue();
+			double heading = point_xz.getValue();
 
 			pos += (coord){ distance * cos(heading), 0, distance * sin(heading) };
+			cache();
 		}
 
 		void mlook(const bool &active){
@@ -316,6 +322,11 @@ public:
 					screenspace_zb[i / 4] = MAX_DRAW_DISTANCE;
 			}
 
+		}
+
+		void cache(){
+			point_xz = point.angle_xz();
+			point_y = point.angle_y();
 		}
 	} *cam;
 
@@ -548,9 +559,8 @@ public:
 			coord b = vertices[vert_b];
 
 			{
-				Radian point_xz = cam->point.angle_xz();
-				double yaw_a = ((a - cam->pos).angle_xz() - point_xz);
-				double yaw_b = ((b - cam->pos).angle_xz() - point_xz);
+				double yaw_a = ((a - cam->pos).angle_xz() - cam->point_xz);
+				double yaw_b = ((b - cam->pos).angle_xz() - cam->point_xz);
 
 				if(
 					(abs(yaw_a) > (PI / 2) && abs(yaw_b) > cam->maxangle_w) ||
@@ -566,7 +576,7 @@ public:
 			double y = from.y;
 			double dx = to.x - from.x;
 			double dy = to.y - from.y;
-			double step = 2 * ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
+			double step = 2.0 * ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
 			coord coord_step = (b - a) / step;
 
 			dx /= step;
@@ -575,6 +585,7 @@ public:
 			const byte_t fill[4] = { 0x00, 0x00, 0x00, 0xff };
 			for(int i = 1; i <= step; i++){
 				pixel px = cam->vertex_screenspace(a + (coord_step * i));
+				//pixel px = (pixel){ (int) x, (int) y };
 
 				if(px.y > y_max)
 					y_max = px.y;
@@ -600,6 +611,9 @@ public:
 				if((px.x >= 0) && (px.y >= 0) && (px.x < SCREEN_WIDTH) && (px.y < SCREEN_HEIGHT)){
 					int offset = (SCREEN_WIDTH * px.y + px.x);
 					double distance = cam->pos.distance_to(a + (coord_step * i));
+
+					//coord px_coord = (a + (coord_step * i));
+					//double distance = cam->pos.distance_to(px_coord) * cos((px_coord - cam->pos).angle_xz() - cam->point_xz);
 
 					// Draw this pixel if there isn't already one in front of it.
 					if(distance < cam->screenspace_zb[offset]){
@@ -648,6 +662,9 @@ public:
 							const unsigned int offset = (SCREEN_WIDTH * line + x);
 							double distance = cam->pos.distance_to(coord_left + (coord_delta * (x - bounds.x)));
 
+							//coord px_coord = (coord_left + (coord_delta * (x - bounds.x)));
+							//double distance = cam->pos.distance_to(px_coord) * cos((px_coord - cam->pos).angle_xz() - cam->point_xz);
+
 							// Draw this pixel if there isn't already one in front of it.
 							if(!cam->wireframe && (distance < cam->screenspace_zb[offset])){
 								memcpy(&cam->screenspace_px[offset * 4], (fill_black ? fill_black_data : face.fill), 4);
@@ -677,6 +694,9 @@ public:
 	virtual ~Scene3D(){}
 
 	virtual void draw(int ticks){
+		// Update camera's cached math results.
+		cam->cache();
+
 		// Draw each mesh. The order doesn't matter because the draw function
 		// has a z-buffer.
 		for(Mesh *mesh : drawable_meshes)
