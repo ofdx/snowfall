@@ -5,6 +5,7 @@
 #define RAD_TO_DEG(r)      ((r) / PI * 180)
 #define SQUARE(x)          ((x) * (x))
 #define MAX_DRAW_DISTANCE  100.0
+#define MAX_CAM_PITCH      (PI / 4)
 
 typedef unsigned char byte_t;
 
@@ -258,11 +259,11 @@ public:
 			double y = point.angle_y() + delta;
 
 			if(y < PI){
-				if(y > (PI / 8))
-					y = (PI / 8);
+				if(y > MAX_CAM_PITCH)
+					y = MAX_CAM_PITCH;
 			} else {
-				if(y < ((2 * PI) - (PI / 8)))
-					y = ((2 * PI) - (PI / 8));
+				if(y < ((2 * PI) - MAX_CAM_PITCH))
+					y = ((2 * PI) - MAX_CAM_PITCH);
 			}
 
 			point.y = sin(y) * sqrt(SQUARE(point.x) + SQUARE(point.y) + SQUARE(point.z));

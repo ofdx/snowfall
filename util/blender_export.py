@@ -7,7 +7,7 @@ def pfs(fs, str):
     fs.write(str)
     print(str, end='')
 
-with open(os.path.splitext(bpy.data.filepath)[0] + '.txt', 'w') as fs:
+with open(os.path.splitext(bpy.data.filepath)[0] + '.mesh', 'w') as fs:
     for obj in bpy.data.objects:
         obdata = obj.data
 
