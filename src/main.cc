@@ -18,12 +18,14 @@
 #define PI 3.14159265359
 
 using namespace std;
+
 int render_scale = 5;
 
 #include "loader.h"
 #include "saveload.h"
 #include "utility.h"
 #include "drawable.h"
+#include "movable.h"
 #include "clickable.h"
 #include "cardpanel.h"
 
@@ -51,14 +53,14 @@ int main(int argc, char **argv){
 
 	SDL_Event event;
 
-    if(SDL_Init(SDL_INIT_VIDEO)){
+    if(SDL_Init(SDL_INIT_EVERYTHING)){
 		cout << "Failed to init SDL: " << SDL_GetError() << endl;
 		return -1;
 	}
 	SDL_ShowCursor(SDL_DISABLE);
 
 	// Enable audio
-	if(Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096)){
+	if(Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, MIX_CHANNELS, 1024)){
 		cout << "Failed to initialize audio." << endl;
 		return -2;
 	}
@@ -79,7 +81,7 @@ int main(int argc, char **argv){
 	// Create a renderer for the window we'll draw everything to.
 	SDL_Renderer *rend = SDL_CreateRenderer(win, -1, 0);
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
-	SDL_RenderSetScale(rend, render_scale, render_scale);
+	SDL_RenderSetLogicalSize(rend, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	SDL_Texture *mouse_tx_1 = textureFromBmp(rend, "mouse/cursor.bmp", true);
 	SDL_Texture *mouse_tx_2 = textureFromBmp(rend, "mouse/cursor2.bmp", true);
@@ -96,43 +98,8 @@ int main(int argc, char **argv){
 	Scene::reg("cards", scene_create<CardsScene>);
 	Scene::reg("test3d", scene_create<TestScene3D>);
 
-	Scene::Controller *ctrl = new Scene::Controller(rend, keys);
-	ctrl->set_scene(Scene::create(ctrl, "intro"));
-
-	// Intro splash
-	/*{
-		int ticks_start = SDL_GetTicks();
-		int ticks_prev = ticks_start;
-		bool skip = false;
-
-		while(!skip){
-			int ticks_now = SDL_GetTicks();
-			int ticks = (ticks_now - ticks_prev);
-			ticks_prev = ticks_now;
-
-			ctrl->draw(ticks);
-
-			SDL_RenderPresent(rend);
-
-			if((ticks_now - ticks_start) > 3000){
-				while(SDL_PollEvent(&event)){
-					if(event.type == SDL_KEYDOWN){
-						skip = true;
-						break;
-					}
-				}
-			}
-
-			SDL_Delay(1000 / 60);
-		}
-	}*/
-
 	// Simple rectangle representing the mouse cursor.
 	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 14, 14 };
-
-	// Load the first scene.
-	ctrl->set_scene(Scene::create(ctrl, "forest"));
-
 
 	// Frame timer for FPS display
 	int frame_counter = 0;
@@ -142,6 +109,9 @@ int main(int argc, char **argv){
 		20, 10
 	}, "");
 
+	// Create controller and load the first scene.
+	Scene::Controller *ctrl = new Scene::Controller(win, rend, render_scale, keys);
+	ctrl->set_scene(Scene::create(ctrl, "intro"));
 
 	int ticks_last = SDL_GetTicks();
 	while(1){
@@ -164,12 +134,27 @@ int main(int argc, char **argv){
 
 				case SDL_MOUSEMOTION:
 					// Move cursor to point position.
-					mouse_cursor.x = event.motion.x / render_scale;
-					mouse_cursor.y = event.motion.y / render_scale;
+					mouse_cursor.x = event.motion.x;
+					mouse_cursor.y = event.motion.y;
 
 				case SDL_MOUSEBUTTONDOWN:
 				case SDL_MOUSEBUTTONUP:
+				case SDL_FINGERDOWN:
+				case SDL_FINGERUP:
 					ctrl->check_mouse(event);
+					break;
+
+				case SDL_WINDOWEVENT:
+					// Handle window sub-events.
+					switch(event.window.event){
+						case SDL_WINDOWEVENT_FOCUS_LOST:
+							// Disable fullscreen if we lose focus, because SDL doesn't handle it well.
+							if(ctrl->fullscreen){
+								SDL_SetWindowFullscreen(ctrl->win, 0);
+								ctrl->fullscreen = false;
+							}
+							break;
+					}
 					break;
 			}
 		}

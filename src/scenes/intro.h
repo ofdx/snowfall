@@ -1,38 +1,25 @@
 class IntroSplashScene : public Scene {
-	ParticleEffect *snow_left, *snow_right;
+	int ticks_total = 0;
 
 public:
 	IntroSplashScene(Scene::Controller *ctrl) : Scene(ctrl) {
 		bg = textureFromBmp(rend, "krakcircle.bmp");
 
-		snow_left = new SnowEffect(
-			rend,
-			(SDL_Rect){
-				0,0,
-				SCREEN_WIDTH / 2, SCREEN_HEIGHT
-			},
-			10, 50, 40,
-			90, 10,
-			30
-		);
+		// Immediately play stinger sound.
+		try {
+			Mix_PlayChannel(-1, FileLoader::get("stinger.wav")->sound(), 0);
+		} catch(...){
+			cout << "Failed to find file: stinger.wav" << endl;
+		}
 
-		snow_right = new SnowEffect(
-			rend,
-			(SDL_Rect){
-				SCREEN_WIDTH / 2, 0,
-				SCREEN_WIDTH / 2, SCREEN_HEIGHT
-			},
-			10, 50, 40,
-			-90, 10,
-			30
-		);
-
-		drawables.push_back(snow_left);
-		drawables.push_back(snow_right);
 	}
 
-	~IntroSplashScene(){
-		delete snow_left;
-		delete snow_right;
+	void draw(int ticks){
+		Scene::draw(ticks);
+		ticks_total += ticks;
+
+		// Wait about three seconds.
+		if(ticks_total > 2950)
+			ctrl->set_scene(Scene::create(ctrl, "forest"));
 	}
 };

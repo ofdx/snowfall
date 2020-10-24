@@ -4,13 +4,16 @@
 
 	A playing card, with a face and back.
 */
+
+#define PLAYINGCARD_WIDTH 30
+#define PLAYINGCARD_HEIGHT 40
 class PlayingCard : public Drawable, public Clickable {
 public:
 	enum Suit { A, B, C, D };
 
 private:
 	SDL_Texture *face, *back;
-	SDL_Rect draw_region = { 0, 0, 30, 40 };
+	SDL_Rect draw_region = { 0, 0, PLAYINGCARD_WIDTH, PLAYINGCARD_HEIGHT };
 	enum Suit suit;
 	int value;
 
@@ -20,31 +23,53 @@ private:
 	float flipping_progress = 0.0f;
 	int flipping_offset = 0;
 
-public:
-	void set_suit(enum Suit suit){
-		this->suit = suit;
+	double saturation = 1.0;
+	SDL_Color color_last = { 0, 0, 0 };
 
+	void update_color(){
 		// Color card based on suit.
 		{
-			SDL_Color color = { 0x77, 0x77, 0x77 };
+			static const unsigned char c_min = 0x70;
+			SDL_Color color = { c_min, c_min, c_min };
+
+			unsigned char c = (0xff - ((0xff - c_min) * (1.0 - saturation)));
 
 			switch(suit){
 				case A:
-					color.r = 0xff;
+					color.r = c;
 					break;
 				case B:
-					color.r = color.b = 0xff;
+					color.r = color.b = c;
 					break;
 				case C:
-					color.g = 0xff;
+					color.g = c;
 					break;
 				case D:
-					color.g = color.r = 0xff;
+					color.g = color.r = c;
 					break;
 			}
 
-			SDL_SetTextureColorMod(face, color.r, color.g, color.b);
+			if(color != color_last){
+				SDL_SetTextureColorMod(face, color.r, color.g, color.b);
+				color_last = color;
+			}
 		}
+	}
+
+public:
+	int offset_y = 0;
+	int time_deal = 0;
+	float time_progress = 0.0f;
+	bool has_chirped = false;
+
+	void set_saturation(double satch){
+		this->saturation = satch;
+		update_color();
+	}
+
+	void set_suit(enum Suit suit){
+		this->suit = suit;
+		update_color();
 	}
 
 	void set_pos(int x, int y){
@@ -71,14 +96,18 @@ public:
 			SDL_DestroyTexture(face);
 	}
 
+	int get_value() const {
+		return value;
+	}
+
 	void draw(int ticks){
 		if(flipping){
-			int w = slide_quad(-30, 30, 200, ticks, flipping_progress);
+			int w = slide_quad(-PLAYINGCARD_WIDTH, PLAYINGCARD_WIDTH, 200, ticks, flipping_progress);
 			if(w < 0)
 				w = -w;
 			if(w < 2)
 				w = 2;
-			flipping_offset = (30 - w) / 2;
+			flipping_offset = (PLAYINGCARD_WIDTH - w) / 2;
 
 			draw_region.w = w;
 			set_click_region(draw_region);
@@ -116,6 +145,16 @@ public:
 		flipping_progress = 0.0f;
 
 		return face_up;
+	}
+
+	void set_face(bool up, bool immediately = true){
+		if(immediately){
+			flipping = false;
+			face_up = up;
+		} else {
+			if(face_up != up)
+				card_flip();
+		}
 	}
 
 	void on_mouse_click(SDL_MouseButtonEvent event){

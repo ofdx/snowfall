@@ -15,7 +15,6 @@
 */
 class Clickable {
 	bool mouse_in = false;
-	int buttons = 0;
 
 	// Returns true if the mouse_in state changed.
 	bool is_mouse_in(int screen_x, int screen_y){
@@ -23,11 +22,11 @@ class Clickable {
 
 		// Check if the mouse is inside the region.
 		mouse_in = (
-			((screen_x / render_scale) >= click_region.x) &&
-			((screen_y / render_scale) >= click_region.y) &&
+			(screen_x >= click_region.x) &&
+			(screen_y >= click_region.y) &&
 
-			((screen_x / render_scale) < (click_region.x + click_region.w)) &&
-			((screen_y / render_scale) < (click_region.y + click_region.h))
+			(screen_x < (click_region.x + click_region.w)) &&
+			(screen_y < (click_region.y + click_region.h))
 		);
 
 		return (mouse_in != was_mouse_in);
@@ -38,6 +37,8 @@ protected:
 	SDL_Rect click_region = { 0, 0, 0, 0 };
 
 public:
+	bool clickable_disabled = false;
+
 	Clickable(){}
 	virtual ~Clickable(){}
 
@@ -50,7 +51,7 @@ public:
 			case SDL_MOUSEMOTION:
 			{
 				if(is_mouse_in(event.motion.x, event.motion.y)){
-					if(mouse_in)
+					if(mouse_in && !clickable_disabled)
 						on_mouse_in(event.motion);
 					else
 						on_mouse_out(event.motion);
@@ -66,10 +67,27 @@ public:
 				// generating a new SDL_MOUSEMOTION event.
 				is_mouse_in(event.button.x, event.button.y);
 
-				if(mouse_in){
-					buttons |= event.button.button;
+				if(mouse_in)
 					on_mouse_down(event.button);
+
+				break;
+			}
+
+			case SDL_FINGERDOWN:
+			{
+				is_mouse_in(
+					(int)(event.tfinger.x * SCREEN_WIDTH),
+					(int)(event.tfinger.y * SCREEN_HEIGHT)
+				);
+
+				if(mouse_in){
+					SDL_MouseButtonEvent event_fake = {
+						button: SDL_BUTTON_LEFT
+					};
+
+					on_mouse_down(event_fake);
 				}
+
 				break;
 			}
 
@@ -81,11 +99,26 @@ public:
 				// the user successfully clicked on it, it could then escape
 				// before they had time to release the mouse.
 
-				buttons &= !event.button.button;
 				on_mouse_up(event.button);
 
-				if(mouse_in)
+				if(mouse_in && !clickable_disabled)
 					on_mouse_click(event.button);
+
+				break;
+			}
+
+			case SDL_FINGERUP:
+			{
+				SDL_MouseButtonEvent event_fake = {
+					button: SDL_BUTTON_LEFT
+				};
+
+				on_mouse_up(event_fake);
+
+				if(mouse_in && !clickable_disabled)
+					on_mouse_click(event_fake);
+
+
 				break;
 			}
 		}

@@ -13,6 +13,8 @@ protected:
 	}
 
 public:
+	bool drawable_hidden = false;
+
 	virtual void draw(int ticks) = 0;
 
 	virtual ~Drawable(){}

@@ -8,6 +8,7 @@ class Button : public Drawable, public Clickable {
 	bool hover = false;
 	bool down = false;
 	char alpha = 0xFF;
+	int ticks_toshow = 0;
 
 	SDL_Color color_normal = { 0xb0, 0xb0, 0xb0 };
 	SDL_Color color_down = { 0x40, 0x40, 0x40 };
@@ -74,6 +75,16 @@ public:
 	}
 
 	void draw(int ticks){
+		// Delay before allowing the button to be clicked again.
+		if(ticks_toshow > 0){
+			if(ticks_toshow > ticks){
+				ticks_toshow -= ticks;
+			} else {
+				clickable_disabled = false;
+				ticks_toshow = 0;
+			}
+		}
+
 		SDL_Color fill = (down ? color_down : color_normal);
 		SDL_Color bord = (hover ? color_hover : color_label);
 
@@ -87,6 +98,19 @@ public:
 
 		// Text
 		label->draw(ticks);
+	}
+
+	virtual void visible(bool vis){
+		if(vis){
+			// Show (delayed clickability)
+			ticks_toshow = 100;
+			drawable_hidden = false;
+		} else {
+			// Hide
+			ticks_toshow = 0;
+			drawable_hidden = true;
+			clickable_disabled = true;
+		}
 	}
 
 	virtual void action(){}

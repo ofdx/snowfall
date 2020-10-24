@@ -4,8 +4,10 @@
 
 	A class which draws text onto the screen using a bitmap font.
 */
-class PicoText : public Drawable {
-	SDL_Texture *font;
+class PicoText :
+	public Drawable
+{
+	SDL_Texture *font, *font_shadow;
 	SDL_Rect region;
 	string message;
 
@@ -22,33 +24,62 @@ class PicoText : public Drawable {
 	int ticks_perchar = 0;
 	int ticks_passed = 0;
 
+	int shadow_offset_x = 0;
+	int shadow_offset_y = 0;
+
+	unsigned int blink_on = 0;
+	unsigned int blink_off = 0;
+
 public:
-	PicoText(SDL_Renderer *rend, SDL_Rect region, string message) : Drawable(rend) {
+	PicoText(SDL_Renderer *rend, SDL_Rect region, string message) :
+		Drawable(rend)
+	{
 		this->region = region;
 		this->message = message;
 
-		// Configure optional typewriter effect...
-		// TODO
-
-		// Load the font image.
+		// Load the default font image.
 		font = textureFromBmp(rend, "fonts/6x7.bmp", true);
+		font_shadow = textureFromBmp(rend, "fonts/6x7.bmp", true);
 	}
 
 	~PicoText(){
 		SDL_DestroyTexture(font);
+		SDL_DestroyTexture(font_shadow);
+	}
+
+	void set_shadow(int x, int y){
+		shadow_offset_x = x;
+		shadow_offset_y = y;
 	}
 
 	void set_font(string bitmap, int c_width, int c_height){
-		if(font)
-			SDL_DestroyTexture(font);
+		SDL_DestroyTexture(font);
+		SDL_DestroyTexture(font_shadow);
 
 		font = textureFromBmp(rend, bitmap.c_str(), true);
+		font_shadow = textureFromBmp(rend, bitmap.c_str(), true);
 
 		this->c_width = c_width;
 		this->c_height = c_height;
 	}
 
 	void draw(int ticks){
+		static unsigned int blink_counter = 0;
+
+		// Blink text.
+		if(blink_on || blink_off){
+			blink_counter += ticks;
+
+			// Skip draw if we are beyond the on period.
+			if((blink_counter % (blink_on + blink_off)) > blink_on)
+				return;
+
+			// Keep the blink_counter from growing indefinitely.
+			while(blink_counter > (blink_on + blink_off))
+				blink_counter -= (blink_on + blink_off);
+		}
+
+
 		SDL_Rect src = (SDL_Rect){
 			0,0,
 			c_width, c_height
@@ -58,6 +89,7 @@ public:
 			c_width, c_height
 		};
 		bool wrapped = false;
+		bool shadow = (shadow_offset_x || shadow_offset_y);
 
 		int chars_max = -1;
 		if(ticks_perchar){
@@ -117,7 +149,18 @@ public:
 				c = 0;
 
 			src.x = (c * c_width);
+
+			if(shadow){
+				SDL_Rect dst_shadow = (SDL_Rect){
+					dst.x + shadow_offset_x, dst.y + shadow_offset_y,
+					dst.w + shadow_offset_x, dst.h + shadow_offset_y
+				};
+
+				SDL_RenderCopy(rend, font_shadow, &src, &dst_shadow);
+			}
+
 			SDL_RenderCopy(rend, font, &src, &dst);
+
 			dst.x += c_width;
 			chars_thisline++;
 
@@ -136,21 +179,31 @@ public:
 	}
 
 	// Set the color of the text at any time.
-	void set_color(char r, char g, char b){
-		SDL_SetTextureColorMod(font, r, g, b);
+	void set_color(char r, char g, char b, bool shadow = false){
+		SDL_SetTextureColorMod((shadow ? font_shadow : font), r, g, b);
 	}
-	void set_color(SDL_Color col){
-		set_color(col.r, col.g, col.b);
+	void set_color(SDL_Color col, bool shadow = false){
+		set_color(col.r, col.g, col.b, shadow);
 	}
 
 	// Set the alpha/transparency for the text at any time.
-	void set_alpha(char a){
-		SDL_SetTextureAlphaMod(font, a);
+	void set_alpha(char a, bool shadow = false){
+		SDL_SetTextureAlphaMod((shadow ? font_shadow : font), a);
+	}
+
+	void set_blink(unsigned int on, unsigned int off){
+		blink_on = on;
+		blink_off = off;
 	}
 
 	// Set the number of millisecond ticks to hang on each character when
 	// simulating a typewriter. Set to 0 (default) to disable this effect.
 	void set_ticks_perchar(int ticks){
 		ticks_perchar = ticks;
+	}
+
+	void set_pos(int x, int y){
+		region.x = x;
+		region.y = y;
 	}
 };

@@ -2,8 +2,15 @@
 	Various utility methods, just so they don't have to live in main.cc.
 */
 
+bool operator != (const SDL_Color &a, const SDL_Color &b){
+	return !(
+		(a.r == b.r) &&
+		(a.g == b.g) &&
+		(a.b == b.b)
+	);
+}
 
-SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn, bool trans){
+SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn, bool trans = false){
 	FileLoader *fl = FileLoader::get(fn);
 	if(!fl)
 		return NULL;
@@ -15,9 +22,6 @@ SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn, bool trans){
 	SDL_Texture *tx = SDL_CreateTextureFromSurface(rend, sf);
 
 	return tx;
-}
-SDL_Texture *textureFromBmp(SDL_Renderer *rend, const char *fn){
-	return textureFromBmp(rend, fn, false);
 }
 
 void rectSum(SDL_Rect &holder, SDL_Rect a, SDL_Rect b){

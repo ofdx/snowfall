@@ -25,7 +25,8 @@ public:
 
 		// Draw any drawable elements (buttons, etc.)
 		for(auto drawable : drawables)
-			drawable->draw(ticks);
+			if(!drawable->drawable_hidden)
+				drawable->draw(ticks);
 	}
 
 	virtual void check_mouse(SDL_Event event){
@@ -36,14 +37,21 @@ public:
 	class Controller : public Drawable {
 		Scene *scene_next = NULL;
 		map<int, bool> *keys = NULL;
+		list<Scene*> scene_stack;
 
 	public:
-		Scene *scene = NULL;
+		const int render_scale_max;
 
-		Controller(SDL_Renderer *rend, map<int, bool> *keys) :
-			Drawable(rend)
+		Scene *scene = NULL;
+		SDL_Window *win;
+		bool fullscreen = false;
+
+		Controller(SDL_Window *win, SDL_Renderer *rend, int &render_scale, map<int, bool> *keys) :
+			Drawable(rend),
+			render_scale_max(render_scale)
 		{
 			this->keys = keys;
+			this->win = win;
 		}
 
 		SDL_Renderer *renderer(){
@@ -54,14 +62,51 @@ public:
 			this->scene_next = scene;
 		}
 
+		// Save the current scene onto the scene stack and descend into a new sub-scene.
+		void scene_descend(Scene *scene){
+			scene_stack.push_back(this->scene);
+
+			set_scene(scene);
+		}
+
+		// Ascend from the current sub-scene to the parent scene on the stack.
+		// Returns NULL if there is no previous scene on the stack.
+		Scene *scene_ascend(){
+			if(scene_stack.size() > 0){
+				Scene *scene_next = scene_stack.back();
+
+				scene_stack.pop_back();
+				set_scene(scene_next);
+
+				return scene_next;
+			}
+
+			return NULL;
+		}
+
 		void draw(int ticks){
 			if(scene_next){
-				if(scene)
-					delete scene;
+				if(scene){
+					bool scene_on_stack = false;
+
+					for(Scene *it : scene_stack){
+						if(it == scene){
+							scene_on_stack = true;
+							break;
+						}
+					}
+
+					// Delete the scene pointer iff it is not preserved in the scene_stack.
+					if(!scene_on_stack)
+						delete scene;
+				}
 
 				scene = scene_next;
 				scene_next = NULL;
 			}
+
+			SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
+			SDL_RenderClear(rend);
 
 			if(scene)
 				scene->draw(ticks);
