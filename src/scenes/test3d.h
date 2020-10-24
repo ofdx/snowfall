@@ -81,6 +81,13 @@ public:
 			rendered_meshes.push_back(mesh);
 		}
 
+		{
+			Mesh *mesh = Scene3D::Mesh::load(cam, "models/wizard.mesh");
+
+			drawable_meshes.push_back(mesh);
+			rendered_meshes.push_back(mesh);
+		}
+
 		text_xyz = new PicoText(rend, (SDL_Rect){
 			5, SCREEN_HEIGHT - 20,
 			SCREEN_WIDTH, 10

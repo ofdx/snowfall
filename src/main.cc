@@ -11,8 +11,8 @@
 #include <vector>
 #include <regex>
 
-#define SCREEN_WIDTH  256
-#define SCREEN_HEIGHT 150
+#define SCREEN_WIDTH  384
+#define SCREEN_HEIGHT 216
 #define SCREEN_FPS     60
 
 #define PI 3.14159265359
