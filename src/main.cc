@@ -72,7 +72,7 @@ int main(int argc, char **argv){
 			int width = mode.w / SCREEN_WIDTH;
 			int height = mode.h / SCREEN_HEIGHT;
 
-			render_scale = ((width > height) ? height : width) - 1;
+			render_scale = ((width > height) ? height : width) - 2;
 		}
 	}
 

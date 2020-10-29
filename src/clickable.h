@@ -15,6 +15,7 @@
 */
 class Clickable {
 	bool mouse_in = false;
+	bool mouse_down_in = false;
 
 	// Returns true if the mouse_in state changed.
 	bool is_mouse_in(int screen_x, int screen_y){
@@ -67,8 +68,10 @@ public:
 				// generating a new SDL_MOUSEMOTION event.
 				is_mouse_in(event.button.x, event.button.y);
 
-				if(mouse_in)
+				if(mouse_in){
+					mouse_down_in = true;
 					on_mouse_down(event.button);
+				} else mouse_down_in = false;
 
 				break;
 			}
@@ -93,15 +96,9 @@ public:
 
 			case SDL_MOUSEBUTTONUP:
 			{
-				// You might be tempted to call is_mouse_in() here, just like
-				// the SDL_MOUSEBUTTONDOWN handler, but I think this is
-				// undesirable. The net effect would be, if an object is moving
-				// the user successfully clicked on it, it could then escape
-				// before they had time to release the mouse.
-
 				on_mouse_up(event.button);
 
-				if(mouse_in && !clickable_disabled)
+				if(mouse_in && mouse_down_in && !clickable_disabled)
 					on_mouse_click(event.button);
 
 				break;
@@ -117,7 +114,6 @@ public:
 
 				if(mouse_in && !clickable_disabled)
 					on_mouse_click(event_fake);
-
 
 				break;
 			}

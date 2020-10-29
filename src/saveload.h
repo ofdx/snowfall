@@ -1,7 +1,7 @@
 #define SAVE_FILE_NAME "SAVEDATA"
 
 // Structure defining player save data. Changing the order and size of these
-// fields will break save compatibility.
+// fields will break save compatibility, so do so at your peril.
 struct player_data {
 	// Player character's name.
 	char name[16];
@@ -22,9 +22,16 @@ struct player_data {
 	char padding2[4096];
 };
 
+// Get the path to an appropriate save file location.
+string get_save_path(){
+	static char *pref_path = SDL_GetPrefPath("Krakissi", "PICOGAMO");
+
+	return (string(pref_path) + string(SAVE_FILE_NAME));
+}
+
 // Write player data to SAVEDATA file. Returns true on success.
 bool player_data_save(player_data *data){
-	FILE *outfile = fopen(SAVE_FILE_NAME, "w");
+	FILE *outfile = fopen(get_save_path().c_str(), "w");
 
 	if(outfile){
 		size_t count = fwrite(data, sizeof(struct player_data), 1, outfile);
@@ -40,7 +47,7 @@ bool player_data_save(player_data *data){
 
 // Read player data from SAVEDATA file.
 player_data* player_data_read(){
-	FILE *infile = fopen(SAVE_FILE_NAME, "r");
+	FILE *infile = fopen(get_save_path().c_str(), "r");
 
 	if(infile){
 		player_data *data = (player_data*) malloc(sizeof(struct player_data));
