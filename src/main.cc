@@ -83,9 +83,7 @@ int main(int argc, char **argv){
 	SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
 	SDL_RenderSetLogicalSize(rend, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	SDL_Texture *mouse_tx_1 = textureFromBmp(rend, "mouse/cursor.bmp", true);
 	SDL_Texture *mouse_tx_2 = textureFromBmp(rend, "mouse/cursor2.bmp", true);
-	SDL_Texture *mouse_tx = mouse_tx_1;
 
 	map<int, bool> *keys = new map<int, bool>();
 
@@ -97,9 +95,6 @@ int main(int argc, char **argv){
 	Scene::reg("forest", scene_create<ForestScene>);
 	Scene::reg("cards", scene_create<CardsScene>);
 	Scene::reg("test3d", scene_create<TestScene3D>);
-
-	// Simple rectangle representing the mouse cursor.
-	SDL_Rect mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 14, 14 };
 
 	// Frame timer for FPS display
 	int frame_counter = 0;
@@ -133,10 +128,6 @@ int main(int argc, char **argv){
 					break;
 
 				case SDL_MOUSEMOTION:
-					// Move cursor to point position.
-					mouse_cursor.x = event.motion.x;
-					mouse_cursor.y = event.motion.y;
-
 				case SDL_MOUSEBUTTONDOWN:
 				case SDL_MOUSEBUTTONUP:
 				case SDL_FINGERDOWN:
@@ -161,16 +152,12 @@ int main(int argc, char **argv){
 
 		// Test multiple mouse cursors.
 		if((*keys)[SDLK_2])
-			mouse_tx = mouse_tx_2;
+			ctrl->set_mouse_tx(mouse_tx_2);
 		if((*keys)[SDLK_3])
-			mouse_tx = mouse_tx_1;
+			ctrl->clear_mouse_tx();
 
 		// Draw the current scene.
 		ctrl->draw(ticks);
-
-		// Draw the mouse cursor
-		if(SDL_GetRelativeMouseMode() != SDL_TRUE)
-			SDL_RenderCopy(rend, mouse_tx, NULL, &mouse_cursor);
 
 		frame_text->draw(ticks);
 

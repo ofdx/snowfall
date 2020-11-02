@@ -39,6 +39,10 @@ public:
 		map<int, bool> *keys = NULL;
 		list<Scene*> scene_stack;
 
+		SDL_Texture *mouse_tx, *mouse_tx_default;
+
+		int volume = 128;
+
 	public:
 		const int render_scale_max;
 
@@ -46,12 +50,24 @@ public:
 		SDL_Window *win;
 		bool fullscreen = false;
 
-		Controller(SDL_Window *win, SDL_Renderer *rend, int &render_scale, map<int, bool> *keys) :
+		bool mouse_enabled = true;
+		SDL_Rect mouse_cursor;
+
+		Controller(SDL_Window *win, SDL_Renderer *rend, int render_scale, map<int, bool> *keys) :
 			Drawable(rend),
 			render_scale_max(render_scale)
 		{
 			this->keys = keys;
 			this->win = win;
+
+			// Mouse cursor is a 14x14 pixel image.
+			mouse_cursor = { SCREEN_WIDTH, SCREEN_HEIGHT, 14, 14 };
+			mouse_tx_default = mouse_tx = textureFromBmp(rend, "mouse/cursor.bmp", true);
+		}
+
+		~Controller(){
+			if(mouse_tx_default)
+				SDL_DestroyTexture(mouse_tx);
 		}
 
 		SDL_Renderer *renderer(){
@@ -110,23 +126,45 @@ public:
 
 			if(scene)
 				scene->draw(ticks);
+
+			// Draw mouse cursor
+			if(mouse_enabled && (SDL_GetRelativeMouseMode() != SDL_TRUE))
+				SDL_RenderCopy(rend, mouse_tx, NULL, &mouse_cursor);
 		}
 
 		void quit(){
-			// Show a confirmation dialog?
-			// TODO
-
 			exit(0);
 		}
 
 		void check_mouse(SDL_Event event){
-			if(scene)
+			if(event.type == SDL_MOUSEMOTION){
+				// Move cursor to point position.
+				mouse_cursor.x = event.motion.x;
+				mouse_cursor.y = event.motion.y;
+			}
+
+			if(mouse_enabled && scene)
 				scene->check_mouse(event);
+		}
+
+		void set_mouse_tx(SDL_Texture *mouse_tx){
+			this->mouse_tx = mouse_tx;
+		}
+		void clear_mouse_tx(){
+			this->mouse_tx = mouse_tx_default;
 		}
 
 		// Get the up/down state of a key. True if keydown.
 		bool keystate(int keysym){
 			return (*keys)[keysym];
+		}
+
+		void set_volume(int vol){
+			volume = vol;
+			Mix_Volume(-1, volume);
+		}
+		int get_volume(){
+			return volume;
 		}
 	};
 
