@@ -34,18 +34,12 @@ int render_scale = 5;
 #include "scene3d.h"
 #include "particle.h"
 #include "button.h"
-#include "card.h"
 
 // Particle effects
 #include "snow.h"
 
 // Scenes
 #include "scenes/intro.h"
-#include "scenes/living.h"
-#include "scenes/jeep.h"
-#include "scenes/garage.h"
-#include "scenes/forest.h"
-#include "scenes/cards.h"
 #include "scenes/test3d.h"
 
 int main(int argc, char **argv){
@@ -76,7 +70,7 @@ int main(int argc, char **argv){
 		}
 	}
 
-	SDL_Window *win = SDL_CreateWindow("picogamo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH * render_scale, SCREEN_HEIGHT * render_scale, SDL_WINDOW_SHOWN);
+	SDL_Window *win = SDL_CreateWindow("La Neige Tombe", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH * render_scale, SCREEN_HEIGHT * render_scale, SDL_WINDOW_SHOWN);
 
 	// Create a renderer for the window we'll draw everything to.
 	SDL_Renderer *rend = SDL_CreateRenderer(win, -1, 0);
@@ -89,11 +83,6 @@ int main(int argc, char **argv){
 
 	// Create pointers to scene constructors by name.
 	Scene::reg("intro", scene_create<IntroSplashScene>);
-	Scene::reg("living", scene_create<LivingRoomScene>);
-	Scene::reg("jeep", scene_create<JeepScene>);
-	Scene::reg("garage", scene_create<GarageScene>);
-	Scene::reg("forest", scene_create<ForestScene>);
-	Scene::reg("cards", scene_create<CardsScene>);
 	Scene::reg("test3d", scene_create<TestScene3D>);
 
 	// Frame timer for FPS display
@@ -106,7 +95,8 @@ int main(int argc, char **argv){
 
 	// Create controller and load the first scene.
 	Scene::Controller *ctrl = new Scene::Controller(win, rend, render_scale, keys);
-	ctrl->set_scene(Scene::create(ctrl, "intro"));
+	//ctrl->set_scene(Scene::create(ctrl, "intro"));
+	ctrl->set_scene(Scene::create(ctrl, "test3d"));
 
 	int ticks_last = SDL_GetTicks();
 	while(1){

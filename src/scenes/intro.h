@@ -100,6 +100,6 @@ public:
 
 		// Wait about three seconds.
 		if(ticks_total > 2950)
-			ctrl->set_scene(Scene::create(ctrl, "forest"));
+			ctrl->set_scene(Scene::create(ctrl, "test3d"));
 	}
 };
