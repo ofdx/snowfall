@@ -3,15 +3,12 @@
 	mperron (2019)
 
 	A class which models game assets. These are instantiated via the
-	automatically generated assetblob file, with base64 encoded asset
-	data.
+	automatically generated assetblob file.
 */
-#include "base64.h"
 
 class FileLoader {
 	size_t size_raw;
-	const char *data_raw;
-	string data;
+	char *data_raw;
 
 	static map<string, FileLoader*> assets;
 
@@ -20,9 +17,9 @@ class FileLoader {
 	Mix_Music *mu = NULL;
 	Mix_Chunk *snd = NULL;
 public:
-	FileLoader(size_t size_raw, string data){
+	FileLoader(size_t size_raw, unsigned char *data){
 		this->size_raw = size_raw;
-		this->data = data;
+		this->data_raw = (char*) data;
 	}
 
 	// Get a surface for this asset if it's an image.
@@ -59,7 +56,6 @@ public:
 	}
 
 	static void load(string fname, FileLoader *fl);
-	static void decode_all();
 	static FileLoader *get(string);
 };
 
@@ -79,13 +75,4 @@ FileLoader *FileLoader::get(string fname){
 		cerr << "File not found: " << fname << endl;
 
 	return fl;
-}
-
-// Turn the base64 encoded data into real data.
-void FileLoader::decode_all(){
-	for(auto x : assets){
-		FileLoader *fl = x.second;
-
-		fl->data_raw = base64_dec(fl->data.c_str(), strlen(fl->data.c_str()));
-	}
 }

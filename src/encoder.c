@@ -1,16 +1,14 @@
 /*
 	encoder.c
-	mperron (2019)
+	mperron (2021)
 
-	Reads from the file specified in the first argument and writes base64 to
-	stdout in a format that can be #included into C source.
+	Reads from the file specified in the first argument and writes out a
+	comma-separated list of bytes in hex value with 0x prepended. 
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "base64.h"
 
 #define READ_BLOCK_SIZE 256
 
@@ -45,10 +43,13 @@ int main(int argc, char **argv){
 
 	fclose(source);
 
-	char *enc = base64_enc(data, n);
-
-	base64_toquoted(enc, stdout);
-	free(enc);
+	for(int i = 0; i < n; i++)
+		printf(
+			"0x%02x%s%s",
+			*(data++),
+			(i == (n - 1) ? "" : ", "),
+			(((i + 1) % 16) ? "" : "\n")
+		);
 
 	return 0;
 }

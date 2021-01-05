@@ -19,18 +19,22 @@ if [ -e 'assets' ] && [ -e 'build/encoder' ]; then
 	*/
 	EOF
 
+	i=0
+
 	for F in $(find); do
 		if [ ! -d "$F" ]; then
+			fsize=$(stat -c '%s' "$F")
 			cat >> "../$OUTFILE" <<-EOF
-				FileLoader::load("${F#"./"}", new FileLoader(
-					$(stat -c '%s' "$F"),
+				unsigned char encdata_$i[$fsize] = {
 					$(../build/encoder "$F")
+				};
+				FileLoader::load("${F#"./"}", new FileLoader(
+					$fsize,
+					encdata_$i
 				));
 			EOF
+
+			i=$((i+1))
 		fi
 	done
-
-	cat >> "../$OUTFILE" <<-EOF
-		FileLoader::decode_all();
-	EOF
 fi
