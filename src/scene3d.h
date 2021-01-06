@@ -198,8 +198,6 @@ public:
 		SDL_Texture *screenspace_tx;
 		SDL_Renderer *rend;
 
-		bool wireframe = false;
-
 		Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle) :
 			Clickable(),
 			screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0),
@@ -569,23 +567,21 @@ public:
 					return;
 			}
 
-			pixel from = vertIdToScreen[vert_a];
-			pixel to = vertIdToScreen[vert_b];
+			double step;
+			{
+				pixel from = vertIdToScreen[vert_a];
+				pixel to = vertIdToScreen[vert_b];
 
-			double x = from.x;
-			double y = from.y;
-			double dx = to.x - from.x;
-			double dy = to.y - from.y;
-			double step = 2.0 * ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
+				double dx = to.x - from.x;
+				double dy = to.y - from.y;
+
+				step = 2.0 * ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
+			}
+
 			coord coord_step = (b - a) / step;
 
-			dx /= step;
-			dy /= step;
-
-			const byte_t fill[4] = { 0x00, 0x00, 0x00, 0xff };
 			for(int i = 1; i <= step; i++){
 				pixel px = cam->vertex_screenspace(a + (coord_step * i));
-				//pixel px = (pixel){ (int) x, (int) y };
 
 				if(px.y > y_max)
 					y_max = px.y;
@@ -607,23 +603,6 @@ public:
 
 					scanlines[px.y] = bounds;
 				}
-
-				if((px.x >= 0) && (px.y >= 0) && (px.x < SCREEN_WIDTH) && (px.y < SCREEN_HEIGHT)){
-					int offset = (SCREEN_WIDTH * px.y + px.x);
-					double distance = cam->pos.distance_to(a + (coord_step * i));
-
-					//coord px_coord = (a + (coord_step * i));
-					//double distance = cam->pos.distance_to(px_coord) * cos((px_coord - cam->pos).angle_xz() - cam->point_xz);
-
-					// Draw this pixel if there isn't already one in front of it.
-					if(distance < cam->screenspace_zb[offset]){
-						memcpy(&cam->screenspace_px[offset * 4], fill, 4);
-						cam->screenspace_zb[offset] = distance;
-					}
-				}
-
-				x += dx;
-				y += dy;
 			}
 		}
 
@@ -632,7 +611,6 @@ public:
 
 			// Draw the border, and build a set of pixel coordinates that
 			// represent the outline.
-			SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xff);
 			for(int i = 0, len = face.vertIds.size(); i < len; i++)
 				drawLine(face.vertIds[i], face.vertIds[((i == len - 1) ? 0 : (i + 1))]);
 
@@ -643,37 +621,22 @@ public:
 
 			// Fill each line.
 			if(y_min < y_max){
-				const byte_t fill_black_data[4] = { 0x00, 0x00, 0x00, face.fill[3] };
-
 				for(int line = y_min; line <= y_max; line++){
 					pixel bounds = scanlines[line];
 					coord coord_left = scanlines_coords[2 * line];
 					coord coord_delta = (scanlines_coords[2 * line + 1] - coord_left) / (bounds.y - bounds.x);
-					bool fill_black = false;
 
-					if((line == y_min) || (line == y_max))
-						fill_black = true;
-
-					for(int x = bounds.x + 1; x < bounds.y; x++){
-						if(((x == (bounds.x + 1)) || (x == (bounds.y - 1))) && !((line == y_min) || (line == y_max)))
-							fill_black = true;
-
+					for(int x = bounds.x; x < bounds.y; x++){
 						if((x >= 0) && (line >= 0) && (x < SCREEN_WIDTH) && (line < SCREEN_HEIGHT)){
 							const unsigned int offset = (SCREEN_WIDTH * line + x);
 							double distance = cam->pos.distance_to(coord_left + (coord_delta * (x - bounds.x)));
 
-							//coord px_coord = (coord_left + (coord_delta * (x - bounds.x)));
-							//double distance = cam->pos.distance_to(px_coord) * cos((px_coord - cam->pos).angle_xz() - cam->point_xz);
-
 							// Draw this pixel if there isn't already one in front of it.
-							if(!cam->wireframe && (distance < cam->screenspace_zb[offset])){
-								memcpy(&cam->screenspace_px[offset * 4], (fill_black ? fill_black_data : face.fill), 4);
+							if(distance < cam->screenspace_zb[offset]){
+								memcpy(&cam->screenspace_px[offset * 4], face.fill, 4);
 								cam->screenspace_zb[offset] = distance;
 							}
 						}
-
-						if((x == (bounds.x + 1)) && !((line == y_min) || (line == y_max)))
-							fill_black = false;
 					}
 				}
 			}
