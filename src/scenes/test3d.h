@@ -48,25 +48,6 @@ class TestScene3D : public Scene3D {
 		}
 	} *testLoadButton;
 
-	class CameraControlButton : public Button {
-		Camera *cam;
-		Scene3D::coord xform_pos, xform_point;
-
-	public:
-		CameraControlButton(Camera *cam, Scene3D::coord xform_pos, Scene3D::coord xform_point, SDL_Renderer *rend, int x, int y, string text) :
-			Button(rend, x, y, 1, text.length(), text)
-		{
-			this->cam = cam;
-			this->xform_pos = xform_pos;
-			this->xform_point = xform_point;
-		}
-
-		void action(){
-			cam->pos += xform_pos;
-			cam->point += xform_point;
-		}
-	} *y_plus, *y_minus;
-
 	list<Scene3D::Mesh*> rendered_meshes;
 
 public:
@@ -102,14 +83,6 @@ public:
 		drawables.push_back(text_pry);
 		text_pry->set_color(0xff, 0x0, 0xff);
 
-		// Camera control buttons
-		y_plus = new CameraControlButton(cam, (Scene3D::coord){ 0, 0.1, 0}, (Scene3D::coord){ 0, 0, 0 }, rend, 30, 10, "Y+");
-		y_minus = new CameraControlButton(cam, (Scene3D::coord){ 0, -0.1, 0 }, (Scene3D::coord){ 0, 0, 0 }, rend, 10, 10, "Y-");
-		drawables.push_back(y_plus);
-		clickables.push_back(y_plus);
-		drawables.push_back(y_minus);
-		clickables.push_back(y_minus);
-
 		// FIXME debug
 		testSaveButton = new TestSaveButton(cam);
 		drawables.push_back(testSaveButton);
@@ -122,9 +95,10 @@ public:
 	}
 
 	void draw(int ticks){
+		double walk_speed = ticks / 1000.0 / 5.0;
+
 		// Keyboard walking
 		{
-			double walk_speed = ticks / 1000.0 / 5.0;
 			coord walk_dir = { 0, 0, 0 };
 
 			// X represents fore/aft movement.
@@ -152,6 +126,23 @@ public:
 
 				if(dir)
 					cam->yaw(-dir);
+			}
+		}
+
+		// Rise and fall.
+		{
+			double risefall = 0.0;
+
+			if(ctrl->keystate(SDLK_q))
+				risefall += 1.0;
+
+			if(ctrl->keystate(SDLK_e))
+				risefall -= 1.0;
+
+			if(risefall){
+				risefall *= (ticks * walk_speed);
+
+				cam->pos.y += risefall;
 			}
 		}
 
@@ -204,9 +195,6 @@ public:
 	~TestScene3D(){
 		delete text_xyz;
 		delete text_pry;
-
-		delete y_plus;
-		delete y_minus;
 
 		delete testSaveButton;
 		delete testLoadButton;
