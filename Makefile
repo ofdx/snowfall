@@ -46,4 +46,4 @@ build/neigetombe.exe: build/neigetombe
 # Build the game for 64-bit Linux
 build/neigetombe: src/main.cc build/assetblob src/*.h src/scenes/*
 	@echo "Building for Linux..."
-	@g++ $(GCC_ARGS) -no-pie -I/usr/include -lSDL2 -lSDL2_mixer -o build/neigetombe src/main.cc
+	@g++ $(GCC_ARGS) -no-pie -I/usr/include -o build/neigetombe src/main.cc -lSDL2main -lSDL2 -lSDL2_mixer
