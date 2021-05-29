@@ -56,14 +56,11 @@ public:
 		clickables.push_back(cam);
 
 		{
-			Mesh *mesh = Scene3D::Mesh::load(cam, "models/test_room.mesh");
+			Mesh *mesh = Scene3D::Mesh::load(cam, "models/pentatower.mesh");
 
-			drawable_meshes.push_back(mesh);
-			rendered_meshes.push_back(mesh);
-		}
-
-		{
-			Mesh *mesh = Scene3D::Mesh::load(cam, "models/wizard.mesh");
+			if(!mesh){
+				cout << "Failed to load model!" << endl;
+			}
 
 			drawable_meshes.push_back(mesh);
 			rendered_meshes.push_back(mesh);

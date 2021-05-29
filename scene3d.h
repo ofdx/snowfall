@@ -556,6 +556,7 @@ public:
 			coord a = vertices[vert_a];
 			coord b = vertices[vert_b];
 
+			// Try to ignore verts behind the camera.
 			{
 				double yaw_a = ((a - cam->pos).angle_xz() - cam->point_xz);
 				double yaw_b = ((b - cam->pos).angle_xz() - cam->point_xz);

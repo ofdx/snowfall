@@ -22,13 +22,6 @@ struct player_data {
 	char padding2[4096];
 };
 
-// Get the path to an appropriate save file location.
-string get_save_path(){
-	static char *pref_path = SDL_GetPrefPath("Krakissi", "PICOGAMO");
-
-	return (string(pref_path) + string(SAVE_FILE_NAME));
-}
-
 // Write player data to SAVEDATA file. Returns true on success.
 bool player_data_save(player_data *data){
 	FILE *outfile = fopen(get_save_path().c_str(), "w");
