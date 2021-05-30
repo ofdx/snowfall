@@ -1,5 +1,7 @@
 #define SAVE_FILE_NAME "SAVEDATA"
 
+#include <fstream>
+
 // Structure defining player save data. Changing the order and size of these
 // fields will break save compatibility, so do so at your peril.
 struct player_data {
@@ -24,15 +26,11 @@ struct player_data {
 
 // Write player data to SAVEDATA file. Returns true on success.
 bool player_data_save(player_data *data){
-	FILE *outfile = fopen(get_save_path().c_str(), "w");
+	ofstream outfile(get_save_path() + SAVE_FILE_NAME);
 
 	if(outfile){
-		size_t count = fwrite(data, sizeof(struct player_data), 1, outfile);
-
-		fclose(outfile);
-
-		// True on success.
-		return (count == 1);
+		if(outfile.write((char*) data, sizeof(struct player_data)))
+			return true;
 	}
 
 	return false;
@@ -40,15 +38,13 @@ bool player_data_save(player_data *data){
 
 // Read player data from SAVEDATA file.
 player_data* player_data_read(){
-	FILE *infile = fopen(get_save_path().c_str(), "r");
+	ifstream infile(get_save_path() + SAVE_FILE_NAME);
 
 	if(infile){
 		player_data *data = (player_data*) malloc(sizeof(struct player_data));
-		size_t count = fread(data, sizeof(struct player_data), 1, infile);
+		infile.read((char*) data, sizeof(struct player_data));
 
-		fclose(infile);
-
-		if(count != 1){
+		if(infile.gcount() != sizeof(struct player_data)){
 			free(data);
 			return NULL;
 		}
