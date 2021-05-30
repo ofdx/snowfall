@@ -653,7 +653,7 @@ public:
 	};
 
 	// Objects
-	list<Mesh*> drawable_meshes;
+	list<Renderable*> drawable_meshes;
 
 	virtual ~Scene3D(){}
 
@@ -663,7 +663,7 @@ public:
 
 		// Draw each mesh. The order doesn't matter because the draw function
 		// has a z-buffer.
-		for(Mesh *mesh : drawable_meshes)
+		for(Renderable *mesh : drawable_meshes)
 			mesh->draw(ticks);
 
 		// Copy the frame buffer to the screen.

@@ -15,6 +15,7 @@
 // Headers
 #include "saveload.h"
 #include "scene3d.h"
+#include "wedgeterrain.h"
 
 // Scenes
 #include "scenes/intro.h"

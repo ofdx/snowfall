@@ -48,14 +48,18 @@ class TestScene3D : public Scene3D {
 		}
 	} *testLoadButton;
 
-	list<Scene3D::Mesh*> rendered_meshes;
+	//list<Scene3D::Mesh*> rendered_meshes;
+	WedgeTerrain *terrain;
 
 public:
 	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
 		cam = new Camera(rend, { -6.7, 1, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
 		clickables.push_back(cam);
 
-		{
+		terrain = new WedgeTerrain(cam);
+		drawable_meshes.push_back(terrain);
+
+		/*{
 			Mesh *mesh = Scene3D::Mesh::load(cam, "models/pentatower.mesh");
 
 			if(!mesh){
@@ -64,7 +68,7 @@ public:
 
 			drawable_meshes.push_back(mesh);
 			rendered_meshes.push_back(mesh);
-		}
+		}*/
 
 		text_xyz = new PicoText(rend, (SDL_Rect){
 			5, SCREEN_HEIGHT - 20,
@@ -196,8 +200,10 @@ public:
 		delete testSaveButton;
 		delete testLoadButton;
 
-		for(Scene3D::Mesh *mesh : rendered_meshes)
-			delete mesh;
+		//for(Scene3D::Mesh *mesh : rendered_meshes)
+		//	delete mesh;
+
+		delete terrain;
 
 		delete cam;
 	}
