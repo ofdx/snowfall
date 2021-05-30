@@ -56,11 +56,12 @@ public:
 		drawables.push_back(text_credit_me);
 
 		// Immediately play stinger sound.
-		try {
+		// FIXME debug - disabled sound
+		/*try {
 			Mix_PlayChannel(-1, FileLoader::get("sound/stinger.wav")->sound(), 0);
 		} catch(...){
 			cout << "Failed to find file: stinger.wav" << endl;
-		}
+		}*/
 
 		drawables.push_back(kc = new KrakCircle(rend));
 
@@ -82,6 +83,9 @@ public:
 
 		Scene::draw(ticks);
 		ticks_total += ticks;
+
+		// FIXME debug - jump immediately to the test3d scene.
+		ctrl->set_scene(Scene::create(ctrl, "test3d"));
 
 		// A game by:
 		if((ticks_tocreditshow -= ticks) <= 0){

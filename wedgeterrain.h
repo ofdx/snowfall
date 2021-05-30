@@ -128,7 +128,7 @@ class WedgeTerrain : public Scene3D::Renderable {
                 memcpy(p + (i * WEDGE_BYTE_COUNT), packed, WEDGE_BYTE_COUNT);
         }
 
-        Scene3D::Mesh *calculateMesh(Scene3D::Camera *cam){
+        Scene3D::Mesh *calculateMesh(Scene3D::Camera *cam, unsigned long &count_layers, unsigned long &count_verts, unsigned long &count_faces){
             list<Scene3D::Mesh::Face*> faces;
             vector<Scene3D::coord> vertices;
             int vertex_offset;
@@ -267,16 +267,29 @@ class WedgeTerrain : public Scene3D::Renderable {
                 }
             }
 
+            // FIXME debug
+            cout << "calculateMesh [layers=" << (unsigned int) header.layer_count << "] [verts=" << vertices.size() << "] [faces=" << faces.size() << "]" << endl;
+
+            count_layers += header.layer_count;
+            count_verts += vertices.size();
+            count_faces += faces.size();
+
             return new Scene3D::Mesh(cam, vertices, faces);
         }
     };
 
-    Sector *sector;
+    list<Sector*> sectors;
 
     void calculateMesh(){
-        Scene3D::Mesh *mesh = sector->calculateMesh(cam);
+        active_meshes.clear();
 
-        active_meshes.push_back(mesh);
+        unsigned long count_layers = 0, count_verts = 0, count_faces = 0;
+
+        for(Sector *sector : sectors)
+            active_meshes.push_back(sector->calculateMesh(cam, count_layers, count_verts, count_faces));
+
+        // FIXME debug
+        cout << "calculateMesh TOTAL [layers=" << count_layers << "] [verts=" << count_verts << "] [faces=" << count_faces << "]" << endl;
     }
 
 public:
@@ -284,7 +297,9 @@ public:
         : Renderable(cam)
     {
         // FIXME debug - A single test sector, one layer tall, in the middle of the playfield.
-        sector = new Sector(0, 0, 0, 1);
+        sectors.push_back(new Sector(0, 0, 0, 2));
+        sectors.push_back(new Sector(1, 0, 1, 1));
+        sectors.push_back(new Sector(0,-1, 0, 1));
 
         // Called when terrain changes.
         calculateMesh();
@@ -293,6 +308,9 @@ public:
     ~WedgeTerrain(){
         for(Scene3D::Mesh *mesh : active_meshes)
             delete mesh;
+
+        for(Sector *sector : sectors)
+            delete sector;
     }
 
     virtual void draw(int ticks){

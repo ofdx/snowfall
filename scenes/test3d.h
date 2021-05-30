@@ -1,5 +1,5 @@
 class TestScene3D : public Scene3D {
-	PicoText *text_xyz, *text_pry;
+	PicoText *text_xyz, *text_pry, *text_fps;
 
 	// FIXME debug
 	class TestSaveButton : public Button {
@@ -83,6 +83,13 @@ public:
 		}, "");
 		drawables.push_back(text_pry);
 		text_pry->set_color(0xff, 0x0, 0xff);
+
+		text_fps = new PicoText(rend, (SDL_Rect){
+			5, SCREEN_HEIGHT - 30,
+			SCREEN_WIDTH, 10
+		}, "");
+		drawables.push_back(text_fps);
+		text_fps->set_color(0xff, 0x0, 0xff);
 
 		// FIXME debug
 		testSaveButton = new TestSaveButton(cam);
@@ -175,20 +182,24 @@ public:
 		}
 
 		/* on-screen debug */
-		stringstream pry;
-		Scene3D::Radian
-			rpy(atan2(cam->point.y, sqrt(cam->point.z * cam->point.z + cam->point.x * cam->point.x))),
-			rpxz(atan2(cam->point.z, cam->point.x));
+		{
+			if(ticks)
+				text_fps->set_message(string(" fps: ") + to_string(1000.0 / ticks));
 
-		pry
-			<< "c_pnt: ("
-			<< RAD_TO_DEG(rpxz.getValue()) << ", "
-			<< RAD_TO_DEG(rpy.getValue()) << ")";
+			stringstream pry;
+			Scene3D::Radian
+				rpy(atan2(cam->point.y, sqrt(cam->point.z * cam->point.z + cam->point.x * cam->point.x))),
+				rpxz(atan2(cam->point.z, cam->point.x));
 
-		text_xyz->set_message("c_pos: " + cam->pos.display());
-		text_pry->set_message(pry.str());
+			pry
+				<< "c_pnt: ("
+				<< RAD_TO_DEG(rpxz.getValue()) << ", "
+				<< RAD_TO_DEG(rpy.getValue()) << ")";
+
+			text_xyz->set_message("c_pos: " + cam->pos.display());
+			text_pry->set_message(pry.str());
+		}
 		/* on-screen debug */
-
 
 		Scene3D::draw(ticks);
 	}
@@ -196,6 +207,7 @@ public:
 	~TestScene3D(){
 		delete text_xyz;
 		delete text_pry;
+		delete text_fps;
 
 		delete testSaveButton;
 		delete testLoadButton;
