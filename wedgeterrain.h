@@ -128,10 +128,34 @@ class WedgeTerrain : public Scene3D::Renderable {
                 memcpy(p + (i * WEDGE_BYTE_COUNT), packed, WEDGE_BYTE_COUNT);
         }
 
+        unordered_map<int, int> coord_cache;
+        int vertForCoord(vector<Scene3D::coord> &vertices, const Scene3D::coord &c){
+            int index = c.x + (c.z * (1 + LAYER_EDGE_LENGTH)) + (c.y * (1 + LAYER_EDGE_LENGTH) * (1 + LAYER_EDGE_LENGTH));
+
+            if(vertices.size() != 0){
+                int vertId = coord_cache[index];
+                Scene3D::coord d = vertices[vertId];
+
+                if(c == d){
+                    // Found a match!
+                    return vertId;
+                } else {
+                    vertId = vertices.size();
+
+                    // False positive. Probably vertId == 0 (not found).
+                    vertices.push_back(c);
+                    return (coord_cache[index] = vertId);
+                }
+            } else {
+                // First entry in the list; insert the coord and return 0.
+                vertices.push_back(c);
+                return (coord_cache[index] = 0);
+            }
+        }
+
         Scene3D::Mesh *calculateMesh(Scene3D::Camera *cam, unsigned long &count_layers, unsigned long &count_verts, unsigned long &count_faces){
             list<Scene3D::Mesh::Face*> faces;
             vector<Scene3D::coord> vertices;
-            int vertex_offset;
 
             for(int layerIndex = 0; layerIndex < header.layer_count; layerIndex++){
                 for(int i = 0; i < LAYER_EDGE_LENGTH * LAYER_EDGE_LENGTH; i++){
@@ -139,29 +163,6 @@ class WedgeTerrain : public Scene3D::Renderable {
                     double x = (header.offset_x * LAYER_EDGE_LENGTH) + (i % LAYER_EDGE_LENGTH);
                     double z = (header.offset_z * LAYER_EDGE_LENGTH) + (i / LAYER_EDGE_LENGTH);
                     double y = (header.offset_layer + layerIndex);
-
-                    // Assemble the 8 vertices used to draw the cube.
-                    vertex_offset = vertices.size();
-                    {
-                        Scene3D::coord c = { .x = x, .y = y, .z = z };
-
-                        vertices.push_back(c); // 0
-                        c.x += 1;
-                        vertices.push_back(c); // 1
-                        c.z += 1;
-                        vertices.push_back(c); // 2
-                        c.x -= 1;
-                        vertices.push_back(c); // 3
-                        c.z -= 1;
-                        c.y += 1;
-                        vertices.push_back(c); // 4
-                        c.x += 1;
-                        vertices.push_back(c); // 5
-                        c.z += 1;
-                        vertices.push_back(c); // 6
-                        c.x -= 1;
-                        vertices.push_back(c); // 7
-                    }
 
                     // FIXME - reference a palette instead.
                     const byte_t fill_a[4] = { 0xff, 0x7f, 0x7f, 0xff };
@@ -171,96 +172,114 @@ class WedgeTerrain : public Scene3D::Renderable {
 
                     // Add faces to mesh.
                     {
+                        Scene3D::coord c = { .x = x, .y = y, .z = z };
+
+                        // Modifiers to reach the other coords.
+                        Scene3D::coord
+                            cxp = { .x =  1 },
+                            cyp = { .y =  1 },
+                            czp = { .z =  1 };
+
                         uint8_t *p = (*layers)[layerIndex];
                         Wedge w(p);
+
+                        #define WEDGE_VERT_0 vertIds.push_back(vertForCoord(vertices, c))
+                        #define WEDGE_VERT_1 vertIds.push_back(vertForCoord(vertices, c + cxp))
+                        #define WEDGE_VERT_2 vertIds.push_back(vertForCoord(vertices, c + cxp + czp))
+                        #define WEDGE_VERT_3 vertIds.push_back(vertForCoord(vertices, c + czp))
+                        #define WEDGE_VERT_4 vertIds.push_back(vertForCoord(vertices, c + cyp))
+                        #define WEDGE_VERT_5 vertIds.push_back(vertForCoord(vertices, c + cyp + cxp))
+                        #define WEDGE_VERT_6 vertIds.push_back(vertForCoord(vertices, c + cyp + cxp + czp))
+                        #define WEDGE_VERT_7 vertIds.push_back(vertForCoord(vertices, c + cyp + czp))
 
                         // FIXME - use geometry from Wedge.
 
                         // Bottom A
                         {
+
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 0); vertIds.push_back(vertex_offset + 1); vertIds.push_back(vertex_offset + 2);
+                            WEDGE_VERT_0; WEDGE_VERT_1; WEDGE_VERT_2;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 0); vertIds.push_back(vertex_offset + 1); vertIds.push_back(vertex_offset + 5);
+                            WEDGE_VERT_0; WEDGE_VERT_1; WEDGE_VERT_5;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 1); vertIds.push_back(vertex_offset + 2); vertIds.push_back(vertex_offset + 5);
+                            WEDGE_VERT_1; WEDGE_VERT_2; WEDGE_VERT_5;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 2); vertIds.push_back(vertex_offset + 0); vertIds.push_back(vertex_offset + 5);
+                            WEDGE_VERT_2; WEDGE_VERT_0; WEDGE_VERT_5;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
                         }
 
                         // Bottom B
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 2); vertIds.push_back(vertex_offset + 3); vertIds.push_back(vertex_offset + 0);
+                            WEDGE_VERT_2; WEDGE_VERT_3; WEDGE_VERT_0;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 2); vertIds.push_back(vertex_offset + 3); vertIds.push_back(vertex_offset + 7);
+                            WEDGE_VERT_2; WEDGE_VERT_3; WEDGE_VERT_7;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 3); vertIds.push_back(vertex_offset + 0); vertIds.push_back(vertex_offset + 7);
+                            WEDGE_VERT_3; WEDGE_VERT_0; WEDGE_VERT_7;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 0); vertIds.push_back(vertex_offset + 2); vertIds.push_back(vertex_offset + 7);
+                            WEDGE_VERT_0; WEDGE_VERT_2; WEDGE_VERT_7;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
                         }
 
                         // Top A
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 5); vertIds.push_back(vertex_offset + 6); vertIds.push_back(vertex_offset + 7);
+                            WEDGE_VERT_5; WEDGE_VERT_6; WEDGE_VERT_7;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 5); vertIds.push_back(vertex_offset + 6); vertIds.push_back(vertex_offset + 2);
+                            WEDGE_VERT_5; WEDGE_VERT_6; WEDGE_VERT_2;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 6); vertIds.push_back(vertex_offset + 7); vertIds.push_back(vertex_offset + 2);
+                            WEDGE_VERT_6; WEDGE_VERT_7; WEDGE_VERT_2;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 7); vertIds.push_back(vertex_offset + 5); vertIds.push_back(vertex_offset + 2);
+                            WEDGE_VERT_7; WEDGE_VERT_5; WEDGE_VERT_2;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
                         }
 
                         // Top B
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 7); vertIds.push_back(vertex_offset + 4); vertIds.push_back(vertex_offset + 5);
+                            WEDGE_VERT_7; WEDGE_VERT_4; WEDGE_VERT_5;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 7); vertIds.push_back(vertex_offset + 4); vertIds.push_back(vertex_offset + 0);
+                            WEDGE_VERT_7; WEDGE_VERT_4; WEDGE_VERT_0;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 4); vertIds.push_back(vertex_offset + 5); vertIds.push_back(vertex_offset + 0);
+                            WEDGE_VERT_4; WEDGE_VERT_5; WEDGE_VERT_0;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
                         }
                         {
                             vector<int> vertIds;
-                            vertIds.push_back(vertex_offset + 5); vertIds.push_back(vertex_offset + 7); vertIds.push_back(vertex_offset + 0);
+                            WEDGE_VERT_5; WEDGE_VERT_7; WEDGE_VERT_0;
                             faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
                         }
                     }
@@ -273,6 +292,9 @@ class WedgeTerrain : public Scene3D::Renderable {
             count_layers += header.layer_count;
             count_verts += vertices.size();
             count_faces += faces.size();
+
+            // Clear this cache. It's not useful once the mesh is generated.
+            coord_cache.clear();
 
             return new Scene3D::Mesh(cam, vertices, faces);
         }
