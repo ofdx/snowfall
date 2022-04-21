@@ -159,29 +159,6 @@ public:
 
 	struct pixel {
 		int x, y;
-
-		string display() const {
-			stringstream ret;
-
-			ret
-				<< "("
-				<< x << ", "
-				<< y
-				<< ")";
-
-			return ret.str();
-		}
-
-		inline double distance_to(const pixel &other) const {
-			return sqrt((double)SQUARE(other.x - x) + (double)SQUARE(other.y - y));
-		}
-
-		bool operator >= (const pixel &other) const {
-			return !(*this < other);
-		}
-		bool operator < (const pixel &other) const {
-			return ((y == other.y) ? (x < other.y) : (y < other.y));
-		}
 	};
 
 	class Camera : public Clickable {
@@ -241,7 +218,7 @@ public:
 			};
 		}
 
-		bool pixel_visible(const pixel &px) const {
+		inline bool pixel_visible(const pixel &px) const {
 			if(
 				(px.x >= 0) && (px.x < w) &&
 				(px.y >= 0) && (px.y < h)
@@ -594,7 +571,8 @@ public:
 				double dx = to.x - from.x;
 				double dy = to.y - from.y;
 
-				step = 2.0 * ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
+				// Reducing this step size greatly improves performance;
+				step = 1.025 * ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
 			}
 
 			coord coord_step = (b - a) / step;
