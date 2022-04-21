@@ -181,10 +181,22 @@ public:
 			} else toggle_mlook = false;
 		}
 
+		// Toggle interlaced 3D rendering.
+		{
+			static bool toggle_interlace = false;
+
+			if(ctrl->keystate(SDLK_i)){
+				if(!toggle_interlace){
+					toggle_interlace = true;
+					cam->m_interlace = !cam->m_interlace;
+				}
+			} else toggle_interlace = false;
+		}
+
 		/* on-screen debug */
 		{
 			if(ticks)
-				text_fps->set_message(string(" fps: ") + to_string(1000.0 / ticks));
+				text_fps->set_message(string("  fps: ") + to_string(1000.0 / ticks));
 
 			stringstream pry;
 			Scene3D::Radian

@@ -198,10 +198,13 @@ public:
 		SDL_Texture *screenspace_tx;
 		SDL_Renderer *rend;
 
+		bool m_oddscanline, m_interlace;
+
 		Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle) :
 			Clickable(),
 			screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0),
-			screenspace_zb(SCREEN_WIDTH * SCREEN_HEIGHT, MAX_DRAW_DISTANCE)
+			screenspace_zb(SCREEN_WIDTH * SCREEN_HEIGHT, MAX_DRAW_DISTANCE),
+			m_oddscanline(false), m_interlace(true)
 		{
 			this->rend = rend;
 			this->pos = pos;
@@ -314,12 +317,27 @@ public:
 			// Set the entire screen buffer to a background color.
 			const byte_t fill[4] = { 0x10, 0x29, 0xad, 0xff }; // BGRA
 			for(int i = 0; i < (4 * SCREEN_WIDTH * SCREEN_HEIGHT); i++){
+				if(m_interlace){
+					int linemod = i % (4 * SCREEN_WIDTH * 2);
+
+					if(!m_oddscanline){
+						if(linemod == 0){
+							i += (4 * SCREEN_WIDTH - 1);
+							continue;
+						}
+					} else if(linemod == (4 * SCREEN_WIDTH)){
+						i += (4 * SCREEN_WIDTH - 1);
+						continue;
+					}
+				}
+
 				screenspace_px[i] = fill[i % 4];
 
 				if(!(i % 4))
 					screenspace_zb[i / 4] = MAX_DRAW_DISTANCE;
 			}
 
+			m_oddscanline = !m_oddscanline;
 		}
 
 		void cache(){
@@ -623,6 +641,15 @@ public:
 			// Fill each line.
 			if(y_min < y_max){
 				for(int line = y_min; line <= y_max; line++){
+					// Draw every other line.
+					if(cam->m_interlace){
+						if(cam->m_oddscanline){
+							if((line % 2) == 0)
+								continue;
+						} else if((line % 2) == 1)
+							continue;
+					}
+
 					pixel bounds = scanlines[line];
 					coord coord_left = scanlines_coords[2 * line];
 					coord coord_delta = (scanlines_coords[2 * line + 1] - coord_left) / (bounds.y - bounds.x);
@@ -683,5 +710,4 @@ public:
 
 protected:
 	Scene3D(Controller *ctrl) : Scene(ctrl) {}
-
 };
