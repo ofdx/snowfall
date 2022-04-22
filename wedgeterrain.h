@@ -1,11 +1,45 @@
 /*
  * WedgeTerrain
  * mperron (2021)
- * 
+ *
  * A system for generating grid-based terrain, using cubes which can be
  * sub-divided into four wedge-shaped pieces.
- * 
+ *
  */
+
+/*
+8 byte/64 bits:
+        bitset<9> b_flags(flags);
+        bitset<10> b_geometry(geometry);
+        bitset<5> b_alpha(alpha);
+        bitset<10> b_color_top_a(color_top_a);
+        bitset<10> b_color_top_b(color_top_b);
+        bitset<10> b_color_bottom_a(color_bottom_a);
+        bitset<10> b_color_bottom_b(color_bottom_b);
+
+geometry
+nn f aa bb cc dd
+
+n not used
+n not used
+f flip 90 degrees
+a top a
+a top a
+b top b
+b top b
+c bottom a
+c bottom a
+d bottom b
+d bottom b
+
+two bit wedge modes:
+00 - no display
+01 - normal wedge outside edges
+10 - completer wedge (complement slope)
+11 - inside face only (internal diamond)
+
+*/
+
 #include <bitset>
 
 #define WEDGE_BYTE_COUNT   8
@@ -31,6 +65,10 @@ class WedgeTerrain : public Scene3D::Renderable {
         }
 
         Wedge(uint8_t *datap){
+            unpack(datap);
+        }
+
+        void unpack(uint8_t *datap){
             flags    = datap[0];
             geometry = datap[1] | (((datap[2] >> 5) & 0x7) << 8);
             alpha    = datap[2] & 0x1f;
@@ -74,6 +112,95 @@ class WedgeTerrain : public Scene3D::Renderable {
                 << b_color_bottom_a << "|" << b_color_bottom_b << "|"
                 << endl;
         }
+
+        enum WedgePieceMode {
+            WEDGE_PIECE_MODE_NO_DISPLAY        = 0b00,
+            WEDGE_PIECE_MODE_NORMAL            = 0b01,
+            WEDGE_PIECE_MODE_COMPLEMENT_SLOPE  = 0b10,
+            WEDGE_PIECE_MODE_INSIDE_ONLY       = 0b11
+        };
+
+        enum WedgePiece {
+            WEDGE_PIECE_TOP_A,
+            WEDGE_PIECE_TOP_B,
+            WEDGE_PIECE_BOTTOM_A,
+            WEDGE_PIECE_BOTTOM_B
+        };
+
+        WedgePieceMode getPieceMode(WedgePiece piece){
+            WedgePieceMode mode = WEDGE_PIECE_MODE_NO_DISPLAY;
+
+            switch(piece){
+                case WEDGE_PIECE_TOP_A:
+                    mode = (WedgePieceMode)((geometry >> 6) & 0b11);
+                    break;
+                case WEDGE_PIECE_TOP_B:
+                    mode = (WedgePieceMode)((geometry >> 4) & 0b11);
+                    break;
+                case WEDGE_PIECE_BOTTOM_A:
+                    mode = (WedgePieceMode)((geometry >> 2) & 0b11);
+                    break;
+                case WEDGE_PIECE_BOTTOM_B:
+                    mode = (WedgePieceMode)(geometry & 0b11);
+                    break;
+            }
+
+            return mode;
+        }
+
+        bool is_flipped(){
+            return (geometry >> 8) & 1;
+        }
+
+        // FIXME - consider flipped faces
+        bool has_full_face_xp(){
+            return (
+                (getPieceMode(WEDGE_PIECE_BOTTOM_A) == WEDGE_PIECE_MODE_NORMAL) &&
+                (is_flipped() ?
+                    (getPieceMode(WEDGE_PIECE_TOP_B) == WEDGE_PIECE_MODE_NORMAL) :
+                    (getPieceMode(WEDGE_PIECE_TOP_A) == WEDGE_PIECE_MODE_NORMAL)
+                )
+            );
+        }
+        bool has_full_face_xn(){
+            return (
+                (getPieceMode(WEDGE_PIECE_BOTTOM_B) == WEDGE_PIECE_MODE_NORMAL) &&
+                (is_flipped() ?
+                    (getPieceMode(WEDGE_PIECE_TOP_A) == WEDGE_PIECE_MODE_NORMAL) :
+                    (getPieceMode(WEDGE_PIECE_TOP_B) == WEDGE_PIECE_MODE_NORMAL)
+                )
+            );
+        }
+        bool has_full_face_zp(){
+            return (
+                (is_flipped() ?
+                    (getPieceMode(WEDGE_PIECE_BOTTOM_A) == WEDGE_PIECE_MODE_NORMAL) :
+                    (getPieceMode(WEDGE_PIECE_BOTTOM_B) == WEDGE_PIECE_MODE_NORMAL)
+                ) &&
+                (getPieceMode(WEDGE_PIECE_TOP_A) == WEDGE_PIECE_MODE_NORMAL)
+            );
+        }
+        bool has_full_face_zn(){
+            return (
+                (is_flipped() ?
+                    (getPieceMode(WEDGE_PIECE_BOTTOM_B) == WEDGE_PIECE_MODE_NORMAL) :
+                    (getPieceMode(WEDGE_PIECE_BOTTOM_A) == WEDGE_PIECE_MODE_NORMAL)
+                ) &&
+                (getPieceMode(WEDGE_PIECE_TOP_B) == WEDGE_PIECE_MODE_NORMAL)
+            );
+        }
+        bool has_full_face_yp(){
+            return (
+                (getPieceMode(WEDGE_PIECE_TOP_A) == WEDGE_PIECE_MODE_NORMAL) &&
+                (getPieceMode(WEDGE_PIECE_TOP_B) == WEDGE_PIECE_MODE_NORMAL)
+            );
+        }
+        bool has_full_face_yn(){
+            return (
+                (getPieceMode(WEDGE_PIECE_BOTTOM_A) == WEDGE_PIECE_MODE_NORMAL) &&
+                (getPieceMode(WEDGE_PIECE_BOTTOM_B) == WEDGE_PIECE_MODE_NORMAL)
+            );
+        }
     };
 
     class Sector {
@@ -99,12 +226,49 @@ class WedgeTerrain : public Scene3D::Renderable {
 
             for(int i = 0; i < layerCount; i++){
                 (*layers)[i] = (uint8_t*) calloc(WEDGE_BYTE_COUNT * LAYER_EDGE_LENGTH * LAYER_EDGE_LENGTH, sizeof(uint8_t));
+
+                // Default layer settings.
+                populateLayer(i);
+
+                // FIXME debug - test geometry
+                if(i == 1){
+                    for(int ii = 0; ii < LAYER_EDGE_LENGTH; ii++){
+                        uint8_t *p = (*layers)[i] + ii * WEDGE_BYTE_COUNT;
+                        Wedge w(p);
+
+                        // Turn off all wedge pieces.
+                        w.geometry &= 0b11100000000;
+                        w.repack(p);
+                    }
+                }
+                else {
+                    uint8_t *p = (*layers)[i];
+                    Wedge w(p);
+
+                    w.geometry = 0b10010000101;
+                    w.repack(p);
+
+                    p = (*layers)[i] + (LAYER_EDGE_LENGTH - 1) * WEDGE_BYTE_COUNT;
+                    w.unpack(p);
+                    w.geometry = 0b11100000101;
+                    w.repack(p);
+
+                    p = (*layers)[i] + (LAYER_EDGE_LENGTH - 1 + LAYER_EDGE_LENGTH * 2) * WEDGE_BYTE_COUNT;
+                    w.unpack(p);
+                    w.geometry = 0b11101010101;
+                    w.repack(p);
+
+                    p = (*layers)[i] + (LAYER_EDGE_LENGTH - 2 + LAYER_EDGE_LENGTH * 3) * WEDGE_BYTE_COUNT;
+                    w.unpack(p);
+                    w.geometry = 0b11101010101;
+                    w.repack(p);
+                }
             }
         }
         ~Sector(){
             for(uint8_t ui = 0; ui < header.layer_count; ui++)
                 free((*layers)[ui]);
-                
+
             delete layers;
         }
 
@@ -118,7 +282,7 @@ class WedgeTerrain : public Scene3D::Renderable {
             w.color_top_b = 1;
             w.color_bottom_a = 2;
             w.color_bottom_b = 3;
-            w.geometry = 0b11001010101;
+            w.geometry = 0b10001010101;
 
             // Generate byte data.
             uint8_t packed[8];
@@ -158,6 +322,7 @@ class WedgeTerrain : public Scene3D::Renderable {
             vector<Scene3D::coord> vertices;
 
             for(int layerIndex = 0; layerIndex < header.layer_count; layerIndex++){
+
                 for(int i = 0; i < LAYER_EDGE_LENGTH * LAYER_EDGE_LENGTH; i++){
                     // Offset position into this layer.
                     double x = (header.offset_x * LAYER_EDGE_LENGTH) + (i % LAYER_EDGE_LENGTH);
@@ -180,8 +345,33 @@ class WedgeTerrain : public Scene3D::Renderable {
                             cyp = { .y =  1 },
                             czp = { .z =  1 };
 
-                        uint8_t *p = (*layers)[layerIndex];
+                        uint8_t *p = (*layers)[layerIndex] + i * WEDGE_BYTE_COUNT;
                         Wedge w(p);
+
+                        // Adjacent wedges
+                        Wedge
+                            *w_xp = nullptr,
+                            *w_xn = nullptr,
+                            *w_zp = nullptr,
+                            *w_zn = nullptr,
+                            *w_yp = nullptr,
+                            *w_yn = nullptr;
+
+                        // TODO - get wedges from adjacent sectors
+                        if((i % LAYER_EDGE_LENGTH) < LAYER_EDGE_LENGTH - 1)
+                            w_xp = new Wedge((*layers)[layerIndex] + (i + 1) * WEDGE_BYTE_COUNT);
+                        if((i % LAYER_EDGE_LENGTH) > 0)
+                            w_xn = new Wedge((*layers)[layerIndex] + (i - 1) * WEDGE_BYTE_COUNT);
+                        if((i / LAYER_EDGE_LENGTH) < LAYER_EDGE_LENGTH - 1)
+                            w_zp = new Wedge((*layers)[layerIndex] + (i + LAYER_EDGE_LENGTH) * WEDGE_BYTE_COUNT);
+                        if((i / LAYER_EDGE_LENGTH) > 0)
+                            w_zn = new Wedge((*layers)[layerIndex] + (i - LAYER_EDGE_LENGTH) * WEDGE_BYTE_COUNT);
+
+                        if(layerIndex < header.layer_count - 1)
+                            w_yp = new Wedge((*layers)[layerIndex + 1] + i * WEDGE_BYTE_COUNT);
+                        if(layerIndex != 0)
+                            w_yn = new Wedge((*layers)[layerIndex - 1] + i * WEDGE_BYTE_COUNT);
+
 
                         #define WEDGE_VERT_0 vertIds.push_back(vertForCoord(vertices, c))
                         #define WEDGE_VERT_1 vertIds.push_back(vertForCoord(vertices, c + cxp))
@@ -194,94 +384,288 @@ class WedgeTerrain : public Scene3D::Renderable {
 
                         // FIXME - use geometry from Wedge.
 
-                        // Bottom A
-                        {
+                        /*
+                        The cube model
 
-                            vector<int> vertIds;
-                            WEDGE_VERT_0; WEDGE_VERT_1; WEDGE_VERT_2;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_0; WEDGE_VERT_1; WEDGE_VERT_5;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_1; WEDGE_VERT_2; WEDGE_VERT_5;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_2; WEDGE_VERT_0; WEDGE_VERT_5;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
+                        Lower(y) Upper(y+1)
+                          x +      x +
+                        z 0 1    z 4 5
+                        + 3 2    + 7 6
+                        */
+
+                        Wedge::WedgePieceMode
+                            wpm_top_a =    w.getPieceMode(Wedge::WedgePiece::WEDGE_PIECE_TOP_A),
+                            wpm_top_b =    w.getPieceMode(Wedge::WedgePiece::WEDGE_PIECE_TOP_B),
+                            wpm_bottom_a = w.getPieceMode(Wedge::WedgePiece::WEDGE_PIECE_BOTTOM_A),
+                            wpm_bottom_b = w.getPieceMode(Wedge::WedgePiece::WEDGE_PIECE_BOTTOM_B);
+
+                        bool is_incomplete_cube = !(
+                            (wpm_top_a == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_NORMAL) &&
+                            (wpm_top_b == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_NORMAL) &&
+                            (wpm_bottom_a == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_NORMAL) &&
+                            (wpm_bottom_b == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_NORMAL)
+                        );
+
+                        // Bottom A
+                        if(wpm_bottom_a != Wedge::WedgePieceMode::WEDGE_PIECE_MODE_NO_DISPLAY){
+                            if(wpm_bottom_a != Wedge::WedgePieceMode::WEDGE_PIECE_MODE_INSIDE_ONLY){
+                                if(w.is_flipped()){
+                                    if(!w_yn || !w_yn->has_full_face_yp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_1; WEDGE_VERT_2; WEDGE_VERT_3;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
+                                    }
+                                    if(!w_xp || !w_xp->has_full_face_xn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_1; WEDGE_VERT_2; WEDGE_VERT_6;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
+                                    }
+                                    if(!w_zp || !w_zp->has_full_face_zn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_2; WEDGE_VERT_3; WEDGE_VERT_6;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
+                                    }
+                                } else {
+                                    if(!w_yn || !w_yn->has_full_face_yp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_0; WEDGE_VERT_1; WEDGE_VERT_2;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
+                                    }
+                                    if(!w_zn || !w_zn->has_full_face_zp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_0; WEDGE_VERT_1; WEDGE_VERT_5;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
+                                    }
+                                    if(!w_xp || !w_xp->has_full_face_xn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_1; WEDGE_VERT_2; WEDGE_VERT_5;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
+                                    }
+                                }
+                            }
+
+                            if(is_incomplete_cube){
+                                vector<int> vertIds;
+
+                                if(w.is_flipped()){
+                                    WEDGE_VERT_1; WEDGE_VERT_3;
+
+                                    if(wpm_bottom_a == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_COMPLEMENT_SLOPE){
+                                        WEDGE_VERT_4;
+                                    } else {
+                                        WEDGE_VERT_6;
+                                    }
+                                } else {
+                                    WEDGE_VERT_2; WEDGE_VERT_0;
+
+                                    if(wpm_bottom_a == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_COMPLEMENT_SLOPE){
+                                        WEDGE_VERT_7;
+                                    } else {
+                                        WEDGE_VERT_5;
+                                    }
+                                }
+
+                                faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_a));
+                            }
                         }
 
                         // Bottom B
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_2; WEDGE_VERT_3; WEDGE_VERT_0;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_2; WEDGE_VERT_3; WEDGE_VERT_7;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_3; WEDGE_VERT_0; WEDGE_VERT_7;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_0; WEDGE_VERT_2; WEDGE_VERT_7;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
+                        if(wpm_bottom_b != Wedge::WedgePieceMode::WEDGE_PIECE_MODE_NO_DISPLAY){
+                            if(wpm_bottom_b != Wedge::WedgePieceMode::WEDGE_PIECE_MODE_INSIDE_ONLY){
+                                if(w.is_flipped()){
+                                    if(!w_yn || !w_yn->has_full_face_yp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_3; WEDGE_VERT_0; WEDGE_VERT_1;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
+                                    }
+                                    if(!w_xn || !w_xn->has_full_face_xp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_3; WEDGE_VERT_0; WEDGE_VERT_4;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
+                                    }
+                                    if(!w_zn || !w_zn->has_full_face_zp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_0; WEDGE_VERT_1; WEDGE_VERT_4;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
+                                    }
+                                } else {
+                                    if(!w_yn || !w_yn->has_full_face_yp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_2; WEDGE_VERT_3; WEDGE_VERT_0;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
+                                    }
+                                    if(!w_zp || !w_zp->has_full_face_zn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_2; WEDGE_VERT_3; WEDGE_VERT_7;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
+                                    }
+                                    if(!w_xn || !w_xn->has_full_face_xp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_3; WEDGE_VERT_0; WEDGE_VERT_7;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
+                                    }
+                                }
+                            }
+
+                            if(is_incomplete_cube){
+                                vector<int> vertIds;
+
+                                if(w.is_flipped()){
+                                    WEDGE_VERT_1; WEDGE_VERT_3;
+
+                                    if(wpm_bottom_b == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_COMPLEMENT_SLOPE){
+                                        WEDGE_VERT_6;
+                                    } else {
+                                        WEDGE_VERT_4;
+                                    }
+                                } else {
+                                    WEDGE_VERT_0; WEDGE_VERT_2;
+
+                                    if(wpm_bottom_b == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_COMPLEMENT_SLOPE){
+                                        WEDGE_VERT_5;
+                                    } else {
+                                        WEDGE_VERT_7;
+                                    }
+                                }
+
+                                faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_b));
+                            }
                         }
 
                         // Top A
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_5; WEDGE_VERT_6; WEDGE_VERT_7;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_5; WEDGE_VERT_6; WEDGE_VERT_2;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_6; WEDGE_VERT_7; WEDGE_VERT_2;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_7; WEDGE_VERT_5; WEDGE_VERT_2;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
+                        if(wpm_top_a != Wedge::WedgePieceMode::WEDGE_PIECE_MODE_NO_DISPLAY){
+                            if(wpm_top_a != Wedge::WedgePieceMode::WEDGE_PIECE_MODE_INSIDE_ONLY){
+                                if(w.is_flipped()){
+                                    if(!w_yp || !w_yp->has_full_face_yn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_6; WEDGE_VERT_7; WEDGE_VERT_4;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
+                                    }
+                                    if(!w_zp || !w_zp->has_full_face_zn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_6; WEDGE_VERT_7; WEDGE_VERT_3;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
+                                    }
+                                    if(!w_xn || !w_xn->has_full_face_xp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_7; WEDGE_VERT_0; WEDGE_VERT_3;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
+                                    }
+                                } else {
+                                    if(!w_yp || !w_yp->has_full_face_yn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_5; WEDGE_VERT_6; WEDGE_VERT_7;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
+                                    }
+                                    if(!w_xp || !w_xp->has_full_face_xn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_5; WEDGE_VERT_6; WEDGE_VERT_2;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
+                                    }
+                                    if(!w_zp || !w_zp->has_full_face_zn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_6; WEDGE_VERT_7; WEDGE_VERT_2;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
+                                    }
+                                }
+                            }
+
+                            if(is_incomplete_cube){
+                                vector<int> vertIds;
+
+                                if(w.is_flipped()){
+                                    WEDGE_VERT_0; WEDGE_VERT_6;
+
+                                    if(wpm_top_a == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_COMPLEMENT_SLOPE){
+                                        WEDGE_VERT_1;
+                                    } else {
+                                        WEDGE_VERT_3;
+                                    }
+                                } else {
+                                    WEDGE_VERT_7; WEDGE_VERT_5;
+
+                                    if(wpm_top_a == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_COMPLEMENT_SLOPE){
+                                        WEDGE_VERT_0;
+                                    } else {
+                                        WEDGE_VERT_2;
+                                    }
+                                }
+
+                                faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_c));
+                            }
                         }
 
                         // Top B
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_7; WEDGE_VERT_4; WEDGE_VERT_5;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
+                        if(wpm_top_b != Wedge::WedgePieceMode::WEDGE_PIECE_MODE_NO_DISPLAY){
+                            if(w.is_flipped()){
+                                if(wpm_top_b != Wedge::WedgePieceMode::WEDGE_PIECE_MODE_INSIDE_ONLY){
+                                    if(!w_yp || !w_yp->has_full_face_yn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_4; WEDGE_VERT_5; WEDGE_VERT_6;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
+                                    }
+                                    if(!w_zn || !w_zn->has_full_face_zp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_4; WEDGE_VERT_5; WEDGE_VERT_1;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
+                                    }
+                                    if(!w_xp || !w_xp->has_full_face_xn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_5; WEDGE_VERT_6; WEDGE_VERT_1;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
+                                    }
+                                }
+                            } else {
+                                if(wpm_top_b != Wedge::WedgePieceMode::WEDGE_PIECE_MODE_INSIDE_ONLY){
+                                    if(!w_yp || !w_yp->has_full_face_yn()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_7; WEDGE_VERT_4; WEDGE_VERT_5;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
+                                    }
+                                    if(!w_xn || !w_xn->has_full_face_xp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_7; WEDGE_VERT_4; WEDGE_VERT_0;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
+                                    }
+                                    if(!w_zn || !w_zn->has_full_face_zp()){
+                                        vector<int> vertIds;
+                                        WEDGE_VERT_4; WEDGE_VERT_5; WEDGE_VERT_0;
+                                        faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
+                                    }
+                                }
+                            }
+
+                            if(is_incomplete_cube){
+                                vector<int> vertIds;
+
+                                if(w.is_flipped()){
+                                    WEDGE_VERT_6; WEDGE_VERT_4;
+
+                                    if(wpm_top_b == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_COMPLEMENT_SLOPE){
+                                        WEDGE_VERT_3;
+                                    } else {
+                                        WEDGE_VERT_1;
+                                    }
+                                } else {
+                                    WEDGE_VERT_5; WEDGE_VERT_7;
+
+                                    if(wpm_top_b == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_COMPLEMENT_SLOPE){
+                                        WEDGE_VERT_2;
+                                    } else {
+                                        WEDGE_VERT_0;
+                                    }
+                                }
+
+                                faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
+                            }
                         }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_7; WEDGE_VERT_4; WEDGE_VERT_0;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_4; WEDGE_VERT_5; WEDGE_VERT_0;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
-                        }
-                        {
-                            vector<int> vertIds;
-                            WEDGE_VERT_5; WEDGE_VERT_7; WEDGE_VERT_0;
-                            faces.push_back(new Scene3D::Mesh::Face(vertIds, fill_d));
-                        }
+
+                        delete w_xp;
+                        delete w_xn;
+                        delete w_zp;
+                        delete w_zn;
+                        delete w_yp;
+                        delete w_yn;
                     }
                 }
             }
@@ -318,7 +702,6 @@ public:
     WedgeTerrain(Scene3D::Camera *cam)
         : Renderable(cam)
     {
-        // FIXME debug - A single test sector, one layer tall, in the middle of the playfield.
         sectors.push_back(new Sector(0, 0, 0, 2));
         sectors.push_back(new Sector(1, 0, 1, 1));
         sectors.push_back(new Sector(0,-1, 0, 1));
