@@ -572,7 +572,7 @@ public:
 				double dy = to.y - from.y;
 
 				// Reducing this step size greatly improves performance;
-				step = 1.025 * ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
+				step = 1.5 * ((abs(dx) >= abs(dy)) ? abs(dx) : abs(dy));
 			}
 
 			coord coord_step = (b - a) / step;

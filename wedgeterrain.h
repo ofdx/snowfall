@@ -250,7 +250,7 @@ class WedgeTerrain : public Scene3D::Renderable {
 
                     p = (*layers)[i] + (LAYER_EDGE_LENGTH - 1) * WEDGE_BYTE_COUNT;
                     w.unpack(p);
-                    w.geometry = 0b11100000101;
+                    w.geometry = 0b11110000101;
                     w.repack(p);
 
                     p = (*layers)[i] + (LAYER_EDGE_LENGTH - 1 + LAYER_EDGE_LENGTH * 2) * WEDGE_BYTE_COUNT;
@@ -574,7 +574,7 @@ class WedgeTerrain : public Scene3D::Renderable {
                                 vector<int> vertIds;
 
                                 if(w.is_flipped()){
-                                    WEDGE_VERT_0; WEDGE_VERT_6;
+                                    WEDGE_VERT_4; WEDGE_VERT_6;
 
                                     if(wpm_top_a == Wedge::WedgePieceMode::WEDGE_PIECE_MODE_COMPLEMENT_SLOPE){
                                         WEDGE_VERT_1;
