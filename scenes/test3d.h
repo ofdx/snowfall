@@ -141,10 +141,10 @@ public:
 		{
 			double risefall = 0.0;
 
-			if(ctrl->keystate(SDLK_q))
+			if(ctrl->keystate(SDLK_e))
 				risefall += 1.0;
 
-			if(ctrl->keystate(SDLK_e))
+			if(ctrl->keystate(SDLK_q))
 				risefall -= 1.0;
 
 			if(risefall){

@@ -44,6 +44,8 @@ two bit wedge modes:
 
 #define WEDGE_BYTE_COUNT   8
 #define LAYER_EDGE_LENGTH 16
+#define LAYER_RENDER_HEIGHT 1.0
+#define LAYER_RENDER_WIDTH  1.5
 
 class WedgeTerrain : public Scene3D::Renderable {
     list<Scene3D::Mesh*> active_meshes;
@@ -229,40 +231,6 @@ class WedgeTerrain : public Scene3D::Renderable {
 
                 // Default layer settings.
                 populateLayer(i);
-
-                // FIXME debug - test geometry
-                if(i == 1){
-                    for(int ii = 0; ii < LAYER_EDGE_LENGTH; ii++){
-                        uint8_t *p = (*layers)[i] + ii * WEDGE_BYTE_COUNT;
-                        Wedge w(p);
-
-                        // Turn off all wedge pieces.
-                        w.geometry &= 0b11100000000;
-                        w.repack(p);
-                    }
-                }
-                else {
-                    uint8_t *p = (*layers)[i];
-                    Wedge w(p);
-
-                    w.geometry = 0b10010000101;
-                    w.repack(p);
-
-                    p = (*layers)[i] + (LAYER_EDGE_LENGTH - 1) * WEDGE_BYTE_COUNT;
-                    w.unpack(p);
-                    w.geometry = 0b11110000101;
-                    w.repack(p);
-
-                    p = (*layers)[i] + (LAYER_EDGE_LENGTH - 1 + LAYER_EDGE_LENGTH * 2) * WEDGE_BYTE_COUNT;
-                    w.unpack(p);
-                    w.geometry = 0b11101010101;
-                    w.repack(p);
-
-                    p = (*layers)[i] + (LAYER_EDGE_LENGTH - 2 + LAYER_EDGE_LENGTH * 3) * WEDGE_BYTE_COUNT;
-                    w.unpack(p);
-                    w.geometry = 0b11101010101;
-                    w.repack(p);
-                }
             }
         }
         ~Sector(){
@@ -282,7 +250,7 @@ class WedgeTerrain : public Scene3D::Renderable {
             w.color_top_b = 1;
             w.color_bottom_a = 2;
             w.color_bottom_b = 3;
-            w.geometry = 0b10001010101;
+            w.geometry = 0b001010101;
 
             // Generate byte data.
             uint8_t packed[8];
@@ -325,9 +293,9 @@ class WedgeTerrain : public Scene3D::Renderable {
 
                 for(int i = 0; i < LAYER_EDGE_LENGTH * LAYER_EDGE_LENGTH; i++){
                     // Offset position into this layer.
-                    double x = (header.offset_x * LAYER_EDGE_LENGTH) + (i % LAYER_EDGE_LENGTH);
-                    double z = (header.offset_z * LAYER_EDGE_LENGTH) + (i / LAYER_EDGE_LENGTH);
-                    double y = (header.offset_layer + layerIndex);
+                    double x = LAYER_RENDER_WIDTH * ((header.offset_x * LAYER_EDGE_LENGTH) + (i % LAYER_EDGE_LENGTH));
+                    double z = LAYER_RENDER_WIDTH * ((header.offset_z * LAYER_EDGE_LENGTH) + (i / LAYER_EDGE_LENGTH));
+                    double y = LAYER_RENDER_HEIGHT * (header.offset_layer + layerIndex);
 
                     // FIXME - reference a palette instead.
                     const byte_t fill_a[4] = { 0xff, 0x7f, 0x7f, 0xff };
@@ -341,9 +309,9 @@ class WedgeTerrain : public Scene3D::Renderable {
 
                         // Modifiers to reach the other coords.
                         Scene3D::coord
-                            cxp = { .x =  1 },
-                            cyp = { .y =  1 },
-                            czp = { .z =  1 };
+                            cxp = { .x =  LAYER_RENDER_WIDTH },
+                            cyp = { .y =  LAYER_RENDER_HEIGHT },
+                            czp = { .z =  LAYER_RENDER_WIDTH };
 
                         uint8_t *p = (*layers)[layerIndex] + i * WEDGE_BYTE_COUNT;
                         Wedge w(p);
@@ -687,6 +655,9 @@ class WedgeTerrain : public Scene3D::Renderable {
     list<Sector*> sectors;
 
     void calculateMesh(){
+        for(Scene3D::Mesh *m : active_meshes)
+            delete m;
+
         active_meshes.clear();
 
         unsigned long count_layers = 0, count_verts = 0, count_faces = 0;
@@ -702,9 +673,7 @@ public:
     WedgeTerrain(Scene3D::Camera *cam)
         : Renderable(cam)
     {
-        sectors.push_back(new Sector(0, 0, 0, 2));
-        sectors.push_back(new Sector(1, 0, 1, 1));
-        sectors.push_back(new Sector(0,-1, 0, 1));
+        sectors.push_back(new Sector(0, 0, 0, 1));
 
         // Called when terrain changes.
         calculateMesh();
