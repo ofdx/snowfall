@@ -181,7 +181,7 @@ public:
 			Clickable(),
 			screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0),
 			screenspace_zb(SCREEN_WIDTH * SCREEN_HEIGHT, MAX_DRAW_DISTANCE),
-			m_oddscanline(false), m_interlace(true)
+			m_oddscanline(false), m_interlace(false)
 		{
 			this->rend = rend;
 			this->pos = pos;

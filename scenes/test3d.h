@@ -1,58 +1,22 @@
 class TestScene3D : public Scene3D {
 	PicoText *text_xyz, *text_pry, *text_fps;
+	PicoText *text_debug;
 
-	// FIXME debug
-	class TestSaveButton : public Button {
-		Camera *cam;
-
-	public:
-		TestSaveButton(Camera *cam) :
-			Button(cam->rend, 10, 30, 1, 4, string("save"))
-		{
-			this->cam = cam;
-		}
-
-		void action(){
-			player_data data = {
-				"krak",
-				"",
-				1, 2,
-				cam->pos.x, cam->pos.y, cam->pos.z,
-				cam->point.x, cam->point.y, cam->point.z
-			};
-
-			player_data_save(&data);
-		}
-	} *testSaveButton;
-
-	// FIXME debug
-	class TestLoadButton : public Button {
-		Camera *cam;
-
-	public:
-		TestLoadButton(Camera *cam) :
-			Button(cam->rend, 10, 50, 1, 4, string("load"))
-		{
-			this->cam = cam;
-		}
-
-		void action(){
-			player_data *data = player_data_read();
-
-			if(data){
-				cam->pos = (coord){ data->x, data->y, data->z };
-				cam->point = (coord){ data->point_x, data->point_y, data->point_z };
-			} else {
-				cout << "Failed to load player data!" << endl;
-			}
-		}
-	} *testLoadButton;
+	bool m_show_cam;
+	bool m_console_pending;
+	bool m_nightmode;
 
 	//list<Scene3D::Mesh*> rendered_meshes;
 	WedgeTerrain *terrain;
 
 public:
-	TestScene3D(Scene::Controller *ctrl) : Scene3D(ctrl) {
+	TestScene3D(Scene::Controller *ctrl) :
+		Scene3D(ctrl),
+
+		m_show_cam(false),
+		m_console_pending(false),
+		m_nightmode(false)
+	{
 		cam = new Camera(rend, { -6.7, 1, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
 		clickables.push_back(cam);
 
@@ -67,39 +31,105 @@ public:
 			}
 
 			drawable_meshes.push_back(mesh);
-			rendered_meshes.push_back(mesh);
 		}*/
 
-		text_xyz = new PicoText(rend, (SDL_Rect){
-			5, SCREEN_HEIGHT - 20,
-			SCREEN_WIDTH, 10
-		}, "");
-		drawables.push_back(text_xyz);
-		text_xyz->set_color(0xff, 0x0, 0xff);
-
-		text_pry = new PicoText(rend, (SDL_Rect){
-			5, SCREEN_HEIGHT - 10,
-			SCREEN_WIDTH, 10
-		}, "");
-		drawables.push_back(text_pry);
-		text_pry->set_color(0xff, 0x0, 0xff);
-
-		text_fps = new PicoText(rend, (SDL_Rect){
+		text_debug = new PicoText(rend, (SDL_Rect){
 			5, SCREEN_HEIGHT - 30,
-			SCREEN_WIDTH, 10
+			SCREEN_WIDTH, 30
 		}, "");
-		drawables.push_back(text_fps);
-		text_fps->set_color(0xff, 0x0, 0xff);
+		text_debug->set_color(0xff, 0x0, 0xff);
+		if(m_show_cam)
+			drawables.push_back(text_debug);
+	}
 
-		// FIXME debug
-		testSaveButton = new TestSaveButton(cam);
-		drawables.push_back(testSaveButton);
-		clickables.push_back(testSaveButton);
+	void receive_data(string data) override {
+		if(data.empty())
+			return;
 
-		// FIXME debug
-		testLoadButton = new TestLoadButton(cam);
-		drawables.push_back(testLoadButton);
-		clickables.push_back(testLoadButton);
+		// Immediately return to the console to display status and accept the next command.
+		m_console_pending = true;
+
+		stringstream ss(data);
+		string verb;
+
+		ss >> verb;
+		if(ss){
+			if(verb == "quit"){
+				ctrl->quit();
+			} else if(verb == "close"){
+				m_console_pending = false;
+			} else if(verb == "state"){
+				string action;
+				ss >> action;
+
+				if(ss){
+					if(action == "load"){
+						player_data *data = player_data_read();
+
+						if(data){
+							cam->pos = (coord){ data->x, data->y, data->z };
+							cam->point = (coord){ data->point_x, data->point_y, data->point_z };
+						} else {
+							// FIXME debug
+							cout << "Failed to load player data!" << endl;
+
+							// TODO - return error to console
+						}
+					} else if(action == "save"){
+						player_data data = {
+							"krak",
+							"",
+							1, 2,
+							cam->pos.x, cam->pos.y, cam->pos.z,
+							cam->point.x, cam->point.y, cam->point.z
+						};
+
+						player_data_save(&data);
+
+						// TODO - status to console if possible
+					}
+				}
+			} else if(verb == "set"){
+				string what;
+				ss >> what;
+
+				if(ss){
+					// Toggle camera debug information (pos, point, fps)
+					if(what == "cam"){
+						int val;
+						ss >> val;
+
+						if(ss){
+							if(!m_show_cam && val){
+								m_show_cam = true;
+								drawables.push_back(text_debug);
+							} else if(m_show_cam && !val){
+								m_show_cam = false;
+								drawables.remove(text_debug);
+							}
+						}
+					}
+
+					// Toggle the effect of night.
+					if(what == "night"){
+						int val;
+						ss >> val;
+
+						if(ss)
+							m_nightmode = !!val;
+					}
+
+					// Toggle interlace/alternating scanline 3D render mode.
+					if(what == "interlace"){
+						int val;
+						ss >> val;
+
+						if(ss)
+							cam->m_interlace = !!val;
+					}
+				}
+			}
+		}
 	}
 
 	void draw(int ticks){
@@ -122,6 +152,9 @@ public:
 
 			if(ctrl->keystate(SDLK_d))
 				walk_dir.z -= 1;
+
+			if(ctrl->keystate(SDLK_LSHIFT))
+				walk_speed *= 2;
 
 			// Walk if we have a direction
 			if(!(walk_dir == (coord){ 0, 0, 0})){
@@ -181,48 +214,76 @@ public:
 			} else toggle_mlook = false;
 		}
 
-		// Toggle interlaced 3D rendering.
+		// Text command entry mode
 		{
-			static bool toggle_interlace = false;
+			static bool toggle_console = false;
 
-			if(ctrl->keystate(SDLK_i)){
-				if(!toggle_interlace){
-					toggle_interlace = true;
-					cam->m_interlace = !cam->m_interlace;
+			if(ctrl->keystate(SDLK_BACKQUOTE)){
+				if(!toggle_console){
+					toggle_console = true;
+					m_console_pending = true;
 				}
-			} else toggle_interlace = false;
+			} else if(!m_console_pending)
+				toggle_console = false;
 		}
 
 		/* on-screen debug */
-		{
-			if(ticks)
-				text_fps->set_message(string("  fps: ") + to_string(1000.0 / ticks));
+		if(m_show_cam){
+			static int fps_samples[10], fps_pos = 0;
 
-			stringstream pry;
+			stringstream ss;
+
 			Scene3D::Radian
 				rpy(atan2(cam->point.y, sqrt(cam->point.z * cam->point.z + cam->point.x * cam->point.x))),
 				rpxz(atan2(cam->point.z, cam->point.x));
 
-			pry
-				<< "c_pnt: ("
-				<< RAD_TO_DEG(rpxz.getValue()) << ", "
-				<< RAD_TO_DEG(rpy.getValue()) << ")";
+			ss << "c_pos: " << cam->pos.display() << endl;
+			ss << "c_pnt: (" << RAD_TO_DEG(rpxz.getValue()) << ", " << RAD_TO_DEG(rpy.getValue()) << ")" << endl;
 
-			text_xyz->set_message("c_pos: " + cam->pos.display());
-			text_pry->set_message(pry.str());
+			if(ticks){
+				fps_samples[fps_pos++] = (1000.0 / ticks);
+
+				if(fps_pos >= 10)
+					fps_pos = 0;
+			}
+
+			int fps = 0;
+
+			for(int i = 0; i < 10; i++){
+				fps += fps_samples[i];
+			}
+
+			ss << "  fps: " << (fps / 10);
+
+			text_debug->set_message(ss.str());
 		}
 		/* on-screen debug */
 
 		Scene3D::draw(ticks);
+
+		if(m_nightmode){
+			SDL_Rect fsrect = (SDL_Rect){
+				0, 0,
+				SCREEN_WIDTH, SCREEN_HEIGHT
+			};
+
+			SDL_SetRenderDrawColor(rend, 0x30, 0, 0x60, 0x50);
+			SDL_RenderFillRect(rend, &fsrect);
+		}
+
+		if(m_console_pending){
+			// Disable mouse look so that the mouse cursor will be available in the dialog.
+			cam->mlook(false);
+
+			m_console_pending = false;
+			ctrl->scene_descend(Scene::create(ctrl, "modal_input_text"));
+		}
 	}
 
 	~TestScene3D(){
 		delete text_xyz;
 		delete text_pry;
 		delete text_fps;
-
-		delete testSaveButton;
-		delete testLoadButton;
 
 		//for(Scene3D::Mesh *mesh : rendered_meshes)
 		//	delete mesh;
