@@ -5,7 +5,7 @@
 #define RAD_TO_DEG(r)      ((r) / PI * 180)
 #define SQUARE(x)          ((x) * (x))
 #define MAX_DRAW_DISTANCE  100.0
-#define MAX_CAM_PITCH      (PI / 4)
+#define MAX_CAM_PITCH      (PI / 6)
 
 typedef unsigned char byte_t;
 
@@ -189,13 +189,7 @@ public:
 			this->w = w;
 			this->h = h;
 
-			// Give whichever direction is smaller a lesser FOV.
-			maxangle_w = maxangle_h = maxangle;
-			if(w > h){
-				maxangle_h = maxangle_h / w * h;
-			} else if (h > w){
-				maxangle_w = maxangle_w / h * w;
-			}
+			set_fov(maxangle);
 
 			screenspace_tx = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 			cache();
@@ -203,6 +197,20 @@ public:
 
 		~Camera(){
 			SDL_DestroyTexture(screenspace_tx);
+		}
+
+		void set_fov(double maxangle){
+			maxangle_w = maxangle_h = maxangle;
+
+			// Give whichever direction is smaller a lesser FOV.
+			if(w > h){
+				maxangle_h = maxangle_h / w * h;
+			} else if (h > w){
+				maxangle_w = maxangle_w / h * w;
+			}
+		}
+		double get_fov(){
+			return ((maxangle_w > maxangle_h) ? maxangle_w : maxangle_h);
 		}
 
 		// Get the x,y coordinates of a pixel on screen to represent this visible vertex.

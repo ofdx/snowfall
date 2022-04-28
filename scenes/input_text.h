@@ -7,18 +7,33 @@ class ModalInputText : public Scene, public Typable {
     SDL_Texture *m_img_overlay, *m_img_mask;
     SDL_Rect m_rect_overlay;
 
-    string m_buffer;
+    DebugConsole *m_pConsole;
+
+    string m_buffer, m_buffer_base;
 
     bool m_sendReady, m_cancelReady;
 
-    PicoText *m_textentry;
+    PicoText m_textentry;
+    TextBox m_log;
+
+    unsigned int log_index = 0;
 
 public:
     ModalInputText(Scene::Controller *ctrl) :
         Scene(ctrl),
         Typable(true),
+        m_pConsole(nullptr),
         m_sendReady(false),
-        m_cancelReady(false)
+        m_cancelReady(false),
+
+        m_textentry(rend, (SDL_Rect){
+            0, SCREEN_HEIGHT / 2,
+            SCREEN_WIDTH, 14
+        }, "> "),
+        m_log(rend, (SDL_Rect){
+            0, 0,
+            SCREEN_WIDTH, SCREEN_HEIGHT / 2
+        }, "")
     {
 		// Scene-darkening mask.
 		{
@@ -38,11 +53,10 @@ public:
         // Screenshot existing scene for a background.
         m_img_overlay = ctrl->screencap(m_rect_overlay);
 
-        m_textentry = new PicoText(rend, (SDL_Rect){
-            0, SCREEN_HEIGHT / 2 - 7,
-            SCREEN_WIDTH, 14
-        }, "> ");
-        drawables.push_back(m_textentry);
+        drawables.push_back(&m_textentry);
+
+        drawables.push_back(&m_log);
+        clickables.push_back(&m_log);
 
         // Receive keyboard typing events.
         typables.push_back(this);
@@ -51,8 +65,17 @@ public:
     ~ModalInputText(){
         if(m_img_overlay)
             SDL_DestroyTexture(m_img_overlay);
+    }
 
-        delete m_textentry;
+    void set_history(string msg){
+        m_log.set_message(msg);
+        m_log.set_scroll(m_log.get_line_count() - 15);
+    }
+
+    void set_console(DebugConsole *pConsole){
+        m_pConsole = pConsole;
+
+        set_history(pConsole->log());
     }
 
     virtual void keydown(SDL_KeyboardEvent event) override {
@@ -60,6 +83,21 @@ public:
         int sym = event.keysym.sym;
 
         switch(sym){
+        case SDLK_UP:
+            if(!log_index)
+                m_buffer_base = m_buffer;
+
+            m_pConsole->cmd_at(++log_index, m_buffer);
+            break;
+        case SDLK_DOWN:
+            if(log_index > 1){
+                m_pConsole->cmd_at(--log_index, m_buffer);
+            } else {
+                log_index = 0;
+                m_buffer = m_buffer_base;
+            }
+            break;
+
         case SDLK_ESCAPE:
         case SDLK_BACKQUOTE:
             m_cancelReady = true;
@@ -119,29 +157,32 @@ public:
 
                 if(shift){
                     switch(sym){
-                        //case SDLK_LEFTBRACKET:  c = '{'; break; // not in the font
-                        //case SDLK_RIGHTBRACKET: c = '}'; break; // not in the font
-                        //case SDLK_BACKSLASH:    c = '|'; break; // not in the font
-                        //case SDLK_COMMA:        c = '<'; break; // in the font, but identical to (
-                        //case SDLK_PERIOD:       c = '>'; break; // in the font, but identical to )
                         case SDLK_SLASH:        c = '?'; break;
                         case SDLK_SEMICOLON:    c = ':'; break;
                         case SDLK_QUOTE:        c = '"'; break;
                         case SDLK_MINUS:        c = '_'; break;
                         case SDLK_EQUALS:       c = '+'; break;
+
+                        // Same as non-shift, for reasons noted:
+                        case SDLK_LEFTBRACKET:  c = '['; break;  // not in the font
+                        case SDLK_RIGHTBRACKET: c = ']'; break;  // not in the font
+                        case SDLK_BACKSLASH:    c = '\\'; break; // not in the font
+                        case SDLK_COMMA:        c = ','; break;  // in the font, but identical to (
+                        case SDLK_PERIOD:       c = '.'; break;  // in the font, but identical to )
                     }
                 } else {
                     switch(sym){
-                        case SDLK_LEFTBRACKET:  c = '['; break;
-                        case SDLK_RIGHTBRACKET: c = ']'; break;
-                        case SDLK_BACKSLASH:    c = '\\'; break;
-                        case SDLK_COMMA:        c = ','; break;
-                        case SDLK_PERIOD:       c = '.'; break;
                         case SDLK_SLASH:        c = '/'; break;
                         case SDLK_SEMICOLON:    c = ';'; break;
                         case SDLK_QUOTE:        c = '\''; break;
                         case SDLK_MINUS:        c = '-'; break;
                         case SDLK_EQUALS:       c = '='; break;
+
+                        case SDLK_LEFTBRACKET:  c = '['; break;
+                        case SDLK_RIGHTBRACKET: c = ']'; break;
+                        case SDLK_BACKSLASH:    c = '\\'; break;
+                        case SDLK_COMMA:        c = ','; break;
+                        case SDLK_PERIOD:       c = '.'; break;
                     }
                 }
 
@@ -150,7 +191,7 @@ public:
             }
         }
 
-        m_textentry->set_message(string("> ") + m_buffer);
+        m_textentry.set_message(string("> ") + m_buffer);
     }
 
     void draw(int ticks){
@@ -160,10 +201,17 @@ public:
         // Draw text input background
         {
             SDL_Rect textbg = (SDL_Rect){
-                0, SCREEN_HEIGHT / 2 - 7,
+                0, SCREEN_HEIGHT / 2,
                 SCREEN_WIDTH, 14
             };
             SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xe0);
+            SDL_RenderFillRect(rend, &textbg);
+
+            textbg = (SDL_Rect){
+                0, 0,
+                SCREEN_WIDTH, SCREEN_HEIGHT / 2
+            };
+            SDL_SetRenderDrawColor(rend, 0, 0, 0, 0xa0);
             SDL_RenderFillRect(rend, &textbg);
         }
 

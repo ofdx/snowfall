@@ -16,11 +16,12 @@
 #include "saveload.h"
 #include "scene3d.h"
 #include "wedgeterrain.h"
+#include "debugconsole.h"
 
 // Scenes
+#include "scenes/input_text.h"
 #include "scenes/intro.h"
 #include "scenes/test3d.h"
-#include "scenes/input_text.h"
 
 // Register pointers to construct all of the scenes used in the game by a string
 // name. There must be at least an "intro" scene which is loaded at launch.
