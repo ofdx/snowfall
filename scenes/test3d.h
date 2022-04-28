@@ -17,7 +17,9 @@ public:
 		m_console_pending(false),
 		m_nightmode(false)
 	{
-		cam = new Camera(rend, { -6.7, 1, 4.6 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+		cam = new Camera(rend, { 35, 10, 35 }, { 1, 0, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+		cam->pitch(-PI / 12);
+		cam->yaw(-PI / 2);
 		clickables.push_back(cam);
 
 		terrain = new WedgeTerrain(cam);
@@ -127,6 +129,23 @@ public:
 						if(ss)
 							cam->m_interlace = !!val;
 					}
+
+					if(what == "fullscreen"){
+						bool val;
+						ss >> val;
+
+						if(ss && (val != ctrl->fullscreen)){
+							ctrl->fullscreen = val;
+
+							SDL_SetWindowFullscreen(ctrl->win, (
+								ctrl->fullscreen ?
+									SDL_WINDOW_FULLSCREEN_DESKTOP :
+									0
+							));
+
+							SDL_Delay(500);
+						}
+					}
 				}
 			}
 		}
@@ -229,7 +248,7 @@ public:
 
 		/* on-screen debug */
 		if(m_show_cam){
-			static int fps_samples[10], fps_pos = 0;
+			static int fps_samples[60], fps_pos = 0;
 
 			stringstream ss;
 
@@ -243,17 +262,17 @@ public:
 			if(ticks){
 				fps_samples[fps_pos++] = (1000.0 / ticks);
 
-				if(fps_pos >= 10)
+				if(fps_pos >= 60)
 					fps_pos = 0;
 			}
 
 			int fps = 0;
 
-			for(int i = 0; i < 10; i++){
+			for(int i = 0; i < 60; i++){
 				fps += fps_samples[i];
 			}
 
-			ss << "  fps: " << (fps / 10);
+			ss << "  fps: " << (fps / 60);
 
 			text_debug->set_message(ss.str());
 		}
