@@ -12,7 +12,7 @@ class DebugConsole {
 
 public:
 	DebugConsole() :
-	 	m_log(),
+		m_log(),
 		m_logsize(100)
 	{
 		stringstream ss;
