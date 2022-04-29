@@ -1,9 +1,9 @@
 /*
-    DebugConsole
-    mperron (2022)
+	DebugConsole
+	mperron (2022)
 
-    Class which manages log messages and processed commands for the
-    debug/development console.
+	Class which manages log messages and processed commands for the
+	debug/development console.
 */
 class DebugConsole {
 	list<string> m_log;
@@ -30,15 +30,15 @@ public:
 			m_log.pop_front();
 	}
 	void log_cmd(string cmd){
-        if(cmd.empty()){
-            log("");
-            return;
-        }
+		if(cmd.empty()){
+			log("");
+			return;
+		}
 
 		log(string("   : ") + cmd);
 
-        if(cmd != m_log_cmd.front())
-            m_log_cmd.push_front(cmd);
+		if(cmd != m_log_cmd.front())
+			m_log_cmd.push_front(cmd);
 
 		while(m_log_cmd.size() > m_logsize)
 			m_log_cmd.pop_back();
@@ -48,21 +48,21 @@ public:
 		m_log.clear();
 	}
 
-    void cmd_at(unsigned int &index, string &buffer){
-        if(index > m_log_cmd.size())
-            index = m_log_cmd.size();
+	void cmd_at(unsigned int &index, string &buffer){
+		if(index > m_log_cmd.size())
+			index = m_log_cmd.size();
 
-        if(index){
-            int i = index;
+		if(index){
+			int i = index;
 
-            for(string cmd : m_log_cmd){
-                if(!--i){
-                    buffer = cmd;
-                    return;
-                }
-            }
-        }
-    }
+			for(string cmd : m_log_cmd){
+				if(!--i){
+					buffer = cmd;
+					return;
+				}
+			}
+		}
+	}
 
 	// Retrieve the message log as a string.
 	string log(){
