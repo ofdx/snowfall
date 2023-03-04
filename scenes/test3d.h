@@ -6,13 +6,14 @@ class TestScene3D : public Scene3D {
 
 	bool m_show_cam;
 	bool m_console_pending;
-	bool m_nightmode;
+	bool m_nightmode, m_nightclock;
 
 	SDL_Color m_night_tint;
 
 	//list<Scene3D::Mesh*> rendered_meshes;
 	WedgeTerrain *terrain;
 
+	int m_tickcounter;
 
 public:
 	TestScene3D(Scene::Controller *ctrl) :
@@ -21,7 +22,9 @@ public:
 		m_show_cam(false),
 		m_console_pending(false),
 		m_nightmode(false),
-		m_night_tint((SDL_Color){ 0x30, 0, 0x60, 0x50})
+		m_nightclock(false),
+		m_night_tint((SDL_Color){ 0x30, 0, 0x60, 0x50}),
+		m_tickcounter(0)
 	{
 		cam = new MultiThreadCamera(rend, { 35, 10, 35 }, { -1, -0.5, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.66 /* seems nice if the cam is 2+ units above ground */, &drawable_meshes);
 		clickables.push_back(cam);
@@ -182,6 +185,15 @@ public:
 
 						ss_log << " " << m_nightmode;
 					}
+					else if(what == "night-clock"){
+						int val;
+						ss >> val;
+
+						if(ss)
+							m_nightclock = !!val;
+
+						ss_log << " " << m_nightclock;
+					}
 					else if(what == "night-tint"){
 						unsigned int r,g,b,a;
 
@@ -282,6 +294,8 @@ public:
 	}
 
 	void draw(int ticks){
+		m_tickcounter += ticks;
+
 		double walk_speed = ticks / 1000.0 / 5.0;
 
 		// Keyboard walking
@@ -402,7 +416,8 @@ public:
 				fps += fps_samples[i];
 			}
 
-			ss << "  fps: " << (fps / 60);
+			int hour = ((m_tickcounter / 1000) % 48) / 2;
+			ss << "tod: " << hour << "; fps: " << (fps / 60);
 
 			text_debug->set_message(ss.str());
 		}
@@ -416,7 +431,20 @@ public:
 				SCREEN_WIDTH, SCREEN_HEIGHT
 			};
 
-			SDL_SetRenderDrawColor(rend, m_night_tint.r, m_night_tint.g, m_night_tint.b, m_night_tint.a);
+			uint8_t intensity = m_night_tint.a;
+
+			// Adjust perception of night over time.
+			if(m_nightclock){
+				int hour = ((m_tickcounter / 1000) % 48) - 24;
+
+				if(hour < 0){
+					intensity *= ((double) hour / - 24.0);
+				} else {
+					intensity *= ((double) hour / 24.0);
+				}
+			}
+
+			SDL_SetRenderDrawColor(rend, m_night_tint.r, m_night_tint.g, m_night_tint.b, intensity);
 			SDL_RenderFillRect(rend, &fsrect);
 		}
 
