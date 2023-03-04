@@ -303,7 +303,7 @@ public:
 				walk_dir.z -= 1;
 
 			if(ctrl->keystate(SDLK_LSHIFT))
-				walk_speed *= 2;
+				walk_speed *= 5;
 
 			// Walk if we have a direction
 			if(!(walk_dir == (coord){ 0, 0, 0})){

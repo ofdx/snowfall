@@ -676,8 +676,8 @@ public:
 		Renderable(cam),
 		mtcam(cam)
 	{
-		for(int i = 0; i < 4; ++ i){
-			for(int ii = 0; ii < 4; ++ ii){
+		for(int i = 0; i < 8; ++ i){
+			for(int ii = 0; ii < 8; ++ ii){
 				sectors.push_back(new Sector(i, ii, 0, 1));
 			}
 		}
@@ -694,10 +694,8 @@ public:
 			delete sector;
 	}
 
-	virtual void draw(int ticks) override {
-		for(Scene3D::Mesh *mesh : active_meshes)
-			mesh->draw(ticks);
-	}
+	// Should call draw_if_cam instead.
+	virtual void draw(int ticks) override {}
 
 	virtual void draw_if_cam(int ticks, Scene3D::Camera const *refCam) override {
 		// We need to pass through the reference cam check to every mesh because they may be on any cam.

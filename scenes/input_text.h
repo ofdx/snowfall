@@ -80,7 +80,7 @@ public:
 	}
 
 	virtual void keydown(SDL_KeyboardEvent event) override {
-		bool shift = (event.keysym.mod && KMOD_SHIFT);
+		bool shift = (event.keysym.mod & KMOD_SHIFT);
 		int sym = event.keysym.sym;
 
 		switch(sym){

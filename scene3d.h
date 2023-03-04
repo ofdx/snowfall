@@ -502,7 +502,7 @@ void Scene3D::MultiThreadCamera::draw_frame(){
 		while(MtCamMem[i]->m_run) std::this_thread::yield();
 	}
 
-	// Merge all thread cameras screenspace_px, copy to our texture, and render.
+	// Merge all thread cameras screenspace_px
 	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
 		Camera *c = m_pCams[i];
 
@@ -521,6 +521,7 @@ void Scene3D::MultiThreadCamera::draw_frame(){
 		c->clear();
 	}
 
+	// Copy to our texture and render to the screen.
 	Camera::draw_frame();
 }
 void Scene3D::MultiThreadCamera::cache(){
