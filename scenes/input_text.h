@@ -53,6 +53,7 @@ public:
 		// Screenshot existing scene for a background.
 		m_img_overlay = ctrl->screencap(m_rect_overlay);
 
+		m_textentry.draw_cursor = true;
 		drawables.push_back(&m_textentry);
 
 		drawables.push_back(&m_log);
@@ -226,5 +227,6 @@ public:
 		// Send command to parent.
 		if(m_sendReady)
 			ctrl->scene_ascend(m_buffer);
+
 	}
 };

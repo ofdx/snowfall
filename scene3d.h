@@ -5,7 +5,7 @@
 #define RAD_TO_DEG(r)      ((r) / PI * 180)
 #define SQUARE(x)          ((x) * (x))
 #define MAX_DRAW_DISTANCE  100.0
-#define MAX_CAM_PITCH      (PI / 6)
+#define MAX_CAM_PITCH      0.35
 
 typedef unsigned char byte_t;
 
@@ -175,12 +175,15 @@ public:
 		SDL_Texture *screenspace_tx;
 		SDL_Renderer *rend;
 
+		double max_pitch;
+
 		bool m_oddscanline, m_interlace;
 
 		Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle) :
 			Clickable(),
 			screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0),
 			screenspace_zb(SCREEN_WIDTH * SCREEN_HEIGHT, MAX_DRAW_DISTANCE),
+			max_pitch(MAX_CAM_PITCH),
 			m_oddscanline(false), m_interlace(false)
 		{
 			this->rend = rend;
@@ -249,11 +252,11 @@ public:
 			double y = point_y + delta;
 
 			if(y < PI){
-				if(y > MAX_CAM_PITCH)
-					y = MAX_CAM_PITCH;
+				if(y > max_pitch)
+					y = max_pitch;
 			} else {
-				if(y < ((2 * PI) - MAX_CAM_PITCH))
-					y = ((2 * PI) - MAX_CAM_PITCH);
+				if(y < ((2 * PI) - max_pitch))
+					y = ((2 * PI) - max_pitch);
 			}
 
 			point.y = sin(y) * sqrt(SQUARE(point.x) + SQUARE(point.y) + SQUARE(point.z));

@@ -23,7 +23,7 @@ public:
 		m_nightmode(false),
 		m_night_tint((SDL_Color){ 0x30, 0, 0x60, 0x50})
 	{
-		cam = new Camera(rend, { 35, 10, 35 }, { -1, -0.5, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.46 /* approximately 90 degrees horizontal FOV */);
+		cam = new Camera(rend, { 35, 10, 35 }, { -1, -0.5, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.66 /* seems nice if the cam is 2+ units above ground */);
 		clickables.push_back(cam);
 
 		terrain = new WedgeTerrain(cam);
@@ -152,6 +152,22 @@ public:
 									cam->point = (coord){ .x = x, .y = y, .z = z };
 
 								ss_log << " " << cam->point.x << " " << cam->point.y << " " << cam->point.z;
+							} else if(item == "pitch-max"){
+								double angle;
+								ss >> angle;
+
+								if(ss)
+									cam->max_pitch = abs(angle);
+
+								ss_log << " " << cam->max_pitch;
+							} else if(item == "fov"){
+								double fov;
+								ss >> fov;
+
+								if(ss)
+									cam->set_fov(fov);
+
+								ss_log << " " << cam->get_fov();
 							} else valid = false;
 						} else valid = false;
 					}
@@ -166,7 +182,7 @@ public:
 
 						ss_log << " " << m_nightmode;
 					}
-					else if(what == "night_tint"){
+					else if(what == "night-tint"){
 						unsigned int r,g,b,a;
 
 						ss >> std::hex >> r >> g >> b >> a;
@@ -228,16 +244,6 @@ public:
 							ctrl->set_render_scale(scale);
 
 						ss_log << " " << render_scale;
-					}
-
-					else if(what == "fov"){
-						double fov;
-						ss >> fov;
-
-						if(ss)
-							cam->set_fov(fov);
-
-						ss_log << " " << cam->get_fov();
 					}
 
 					else valid = false;
