@@ -2,16 +2,29 @@
 	3D Scene
 	mperron (2020)
 */
+#ifdef __MINGW64__
+	#include "mingw-std-threads/mingw.thread.h"
+#else
+	#include <thread>
+#endif
+
+#include <atomic>
+
 #define RAD_TO_DEG(r)      ((r) / PI * 180)
 #define SQUARE(x)          ((x) * (x))
 #define MAX_DRAW_DISTANCE  100.0
 #define MAX_CAM_PITCH      0.35
 
+int const NUM_RENDER_THREADS = 3;
+
 typedef unsigned char byte_t;
 
-class Scene3D : public Scene {
+// MultiThreadCamera worker function.
+void mtCamWorker(int n);
 
+class Scene3D : public Scene {
 public:
+
 	class Radian {
 		double value;
 
@@ -81,28 +94,36 @@ public:
 		virtual void cache();
 	};
 
-	class MultiThreadCamera : public Camera {
-		static int const NUM_THREADS = 5;
+	struct Renderable : public Drawable {
+		Camera *cam;
 
+		Renderable(Camera *cam);
+		virtual void draw_if_cam(int ticks, Camera const *refCam);
+	};
+
+	class MultiThreadCamera : public Camera {
 		// Camera for each thread.
-		Camera *m_pCams[NUM_THREADS] = {};
+		Camera *m_pCams[NUM_RENDER_THREADS] = {};
+
+		// Should be a pointer to the scene's drawable_meshes
+		list<Renderable*> *m_pMeshes;
 
 	public:
-		MultiThreadCamera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle);
+		struct Shmem {
+			std::atomic<bool> m_alive, m_run, m_done;
+			Camera *m_cam;
+			list<Renderable*> *m_pMeshes;
+
+			Shmem(list<Renderable*> *pMeshes, Camera *cam);
+		};
+
+		MultiThreadCamera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle, list<Renderable*> *pMeshes);
 		virtual ~MultiThreadCamera();
 
 		Camera *nextThreadCam();
 		void draw_frame() override;
 		void cache() override;
 	} *cam;
-
-	struct Renderable : public Drawable {
-		Camera *cam;
-
-		Renderable(Camera *cam) : Drawable(cam->rend) {
-			this->cam = cam;
-		}
-	};
 
 	struct Mesh : public Renderable {
 		struct Face {
@@ -133,21 +154,20 @@ public:
 		void populateScreenspace();
 		void drawLine(const int &vert_a, const int &vert_b);
 		void draw_face(const Face &face);
-		virtual void draw(int ticks);
+		virtual void draw(int ticks) override;
 	};
 
 	// Objects
 	list<Renderable*> drawable_meshes;
 
-	virtual ~Scene3D(){}
+	virtual ~Scene3D();
 
 	virtual void draw(int ticks) override;
 	virtual void check_mouse(SDL_Event event) override;
 
 protected:
-	Scene3D(Controller *ctrl) : Scene(ctrl) {}
+	Scene3D(Controller *ctrl);
 };
-
 
 double Scene3D::Radian::Normalize(double value){
 	while(value >= (2 * PI))
@@ -429,16 +449,32 @@ void Scene3D::Camera::cache(){
 }
 
 
-Scene3D::MultiThreadCamera::MultiThreadCamera(SDL_Renderer *rend, Scene3D::coord pos, Scene3D::coord point, int w, int h, double maxangle) :
-	Scene3D::Camera(rend, pos, point, w, h, maxangle)
+// Shared memory for camera threads.
+Scene3D::MultiThreadCamera::Shmem *MtCamMem[NUM_RENDER_THREADS] = {};
+Scene3D::MultiThreadCamera::Shmem::Shmem(list<Scene3D::Renderable*> *pMeshes, Scene3D::Camera *cam) :
+	m_alive(true),
+	m_run(false),
+	m_done(false),
+	m_cam(cam),
+	m_pMeshes(pMeshes)
+{ }
+
+Scene3D::MultiThreadCamera::MultiThreadCamera(SDL_Renderer *rend, Scene3D::coord pos, Scene3D::coord point, int w, int h, double maxangle, list<Scene3D::Renderable*> *pMeshes) :
+	Scene3D::Camera(rend, pos, point, w, h, maxangle),
+	m_pMeshes(pMeshes)
 {
-	for(auto i = 0; i < NUM_THREADS; ++ i){
-		m_pCams[i] = new Camera(rend, pos, point, w, h, maxangle);
+	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
+		// Create camera and its shared memory.
+		MtCamMem[i] = new Shmem(m_pMeshes, (m_pCams[i] = new Camera(rend, pos, point, w, h, maxangle)));
+
+		// Create camera worker thread.
+		std::thread worker(mtCamWorker, i);
+		worker.detach();
 	}
 }
 Scene3D::MultiThreadCamera::~MultiThreadCamera(){
 	// Delete each thread camera.
-	for(auto i = 0; i < NUM_THREADS; ++ i)
+	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i)
 		delete m_pCams[i];
 }
 Scene3D::Camera *Scene3D::MultiThreadCamera::nextThreadCam(){
@@ -446,14 +482,28 @@ Scene3D::Camera *Scene3D::MultiThreadCamera::nextThreadCam(){
 	static int index = 0;
 	Camera *c = m_pCams[index ++];
 
-	if(index >= NUM_THREADS)
+	if(index >= NUM_RENDER_THREADS)
 		index = 0;
 
 	return c;
 }
 void Scene3D::MultiThreadCamera::draw_frame(){
+	// Start rendering threads
+	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
+		MtCamMem[i]->m_run = true;
+	}
+
+	// Draw any meshes which are on the parent camera (not assigned to a thread).
+	for(Renderable *mesh : *m_pMeshes)
+		mesh->draw_if_cam(0 /* ticks */, this);
+
+	// Wait for threads...
+	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
+		while(MtCamMem[i]->m_run) std::this_thread::yield();
+	}
+
 	// Merge all thread cameras screenspace_px, copy to our texture, and render.
-	for(auto i = 0; i < NUM_THREADS; ++ i){
+	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
 		Camera *c = m_pCams[i];
 
 		// Iterate over PX and ZB, assign PX if ZB is closer.
@@ -477,14 +527,43 @@ void Scene3D::MultiThreadCamera::cache(){
 	Camera::cache();
 
 	// Sync values to all thread cameras before draw.
-	for(auto i = 0; i < NUM_THREADS; ++ i){
+	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
 		Camera *c = m_pCams[i];
 
 		if(c)
 			*c = *this;
 	}
 }
+void mtCamWorker(int n){
+	Scene3D::MultiThreadCamera::Shmem *mem = MtCamMem[n];
 
+	while(mem->m_alive){
+		std::this_thread::yield();
+
+		if(mem->m_run){
+			if(mem->m_pMeshes){
+				for(Scene3D::Renderable *mesh : *mem->m_pMeshes)
+					mesh->draw_if_cam(0 /* ticks */, mem->m_cam);
+			}
+
+			// Done for now.
+			mem->m_run = false;
+		}
+	}
+
+	// Thread execution complete.
+	mem->m_done = true;
+}
+
+Scene3D::Renderable::Renderable(Scene3D::Camera *cam) :
+	Drawable(cam->rend),
+	cam(cam)
+{}
+void Scene3D::Renderable::draw_if_cam(int ticks, Scene3D::Camera const *refCam){
+	// Draw if this renderable is assigned this camera.
+	if(cam == refCam)
+		draw(ticks);
+}
 
 Scene3D::Mesh::Face::Face(vector<int> vertIds, const byte_t fill[4]){
 	this->vertIds = vertIds;
@@ -785,17 +864,16 @@ void Scene3D::Mesh::draw(int ticks){
 		draw_face(*face);
 }
 
-
+Scene3D::~Scene3D()
+{ }
+Scene3D::Scene3D(Controller *ctrl) :
+	Scene(ctrl)
+{ }
 void Scene3D::draw(int ticks){
 	// Update camera's cached math results.
 	cam->cache();
 
-	// Draw each mesh. The order doesn't matter because the draw function
-	// has a z-buffer.
-	for(Renderable *mesh : drawable_meshes)
-		mesh->draw(ticks);
-
-	// Copy the frame buffer to the screen.
+	// Render meshes and paint the frame to the screen.
 	cam->draw_frame();
 
 	// Draw everything else on top.

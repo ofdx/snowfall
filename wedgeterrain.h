@@ -694,8 +694,14 @@ public:
 			delete sector;
 	}
 
-	virtual void draw(int ticks){
+	virtual void draw(int ticks) override {
 		for(Scene3D::Mesh *mesh : active_meshes)
 			mesh->draw(ticks);
+	}
+
+	virtual void draw_if_cam(int ticks, Scene3D::Camera const *refCam) override {
+		// We need to pass through the reference cam check to every mesh because they may be on any cam.
+		for(Scene3D::Mesh *mesh : active_meshes)
+			mesh->draw_if_cam(ticks, refCam);
 	}
 };
