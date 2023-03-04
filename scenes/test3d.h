@@ -23,7 +23,7 @@ public:
 		m_nightmode(false),
 		m_night_tint((SDL_Color){ 0x30, 0, 0x60, 0x50})
 	{
-		cam = new Camera(rend, { 35, 10, 35 }, { -1, -0.5, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.66 /* seems nice if the cam is 2+ units above ground */);
+		cam = new MultiThreadCamera(rend, { 35, 10, 35 }, { -1, -0.5, -1 }, SCREEN_WIDTH, SCREEN_HEIGHT, 0.66 /* seems nice if the cam is 2+ units above ground */);
 		clickables.push_back(cam);
 
 		terrain = new WedgeTerrain(cam);

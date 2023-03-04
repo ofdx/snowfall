@@ -43,7 +43,7 @@ two bit wedge modes:
 #include <bitset>
 
 #define WEDGE_BYTE_COUNT   8
-#define LAYER_EDGE_LENGTH 16
+#define LAYER_EDGE_LENGTH 4
 #define LAYER_RENDER_HEIGHT 1.0
 #define LAYER_RENDER_WIDTH  1.5
 
@@ -285,7 +285,7 @@ class WedgeTerrain : public Scene3D::Renderable {
 			}
 		}
 
-		Scene3D::Mesh *calculateMesh(Scene3D::Camera *cam, unsigned long &count_layers, unsigned long &count_verts, unsigned long &count_faces){
+		Scene3D::Mesh *calculateMesh(Scene3D::MultiThreadCamera *mtcam, unsigned long &count_layers, unsigned long &count_verts, unsigned long &count_faces){
 			list<Scene3D::Mesh::Face*> faces;
 			vector<Scene3D::coord> vertices;
 
@@ -648,7 +648,7 @@ class WedgeTerrain : public Scene3D::Renderable {
 			// Clear this cache. It's not useful once the mesh is generated.
 			coord_cache.clear();
 
-			return new Scene3D::Mesh(cam, vertices, faces);
+			return new Scene3D::Mesh(mtcam->nextThreadCam(), vertices, faces);
 		}
 	};
 
@@ -663,17 +663,24 @@ class WedgeTerrain : public Scene3D::Renderable {
 		unsigned long count_layers = 0, count_verts = 0, count_faces = 0;
 
 		for(Sector *sector : sectors)
-			active_meshes.push_back(sector->calculateMesh(cam, count_layers, count_verts, count_faces));
+			active_meshes.push_back(sector->calculateMesh(mtcam, count_layers, count_verts, count_faces));
 
 		// FIXME debug
 		cout << "calculateMesh TOTAL [layers=" << count_layers << "] [verts=" << count_verts << "] [faces=" << count_faces << "]" << endl;
 	}
 
+	Scene3D::MultiThreadCamera *mtcam;
+
 public:
-	WedgeTerrain(Scene3D::Camera *cam)
-		: Renderable(cam)
+	WedgeTerrain(Scene3D::MultiThreadCamera *cam) :
+		Renderable(cam),
+		mtcam(cam)
 	{
-		sectors.push_back(new Sector(0, 0, 0, 1));
+		for(int i = 0; i < 4; ++ i){
+			for(int ii = 0; ii < 4; ++ ii){
+				sectors.push_back(new Sector(i, ii, 0, 1));
+			}
+		}
 
 		// Called when terrain changes.
 		calculateMesh();

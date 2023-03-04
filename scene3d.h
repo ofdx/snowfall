@@ -181,24 +181,39 @@ public:
 
 		Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle) :
 			Clickable(),
+			pos(pos),
+			point(point),
+			w(w),
+			h(h),
 			screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0),
 			screenspace_zb(SCREEN_WIDTH * SCREEN_HEIGHT, MAX_DRAW_DISTANCE),
+			rend(rend),
 			max_pitch(MAX_CAM_PITCH),
 			m_oddscanline(false), m_interlace(false)
 		{
-			this->rend = rend;
-			this->pos = pos;
-			this->point = point;
-			this->w = w;
-			this->h = h;
-
 			set_fov(maxangle);
-
 			screenspace_tx = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 			cache();
 		}
 
-		~Camera(){
+		Camera operator = (Camera const& other){
+			mlook_active = other.mlook_active;
+			pos = other.pos;
+			point = other.point;
+			point_xz = other.point_xz;
+			point_y = other.point_y;
+			maxangle_w = other.maxangle_w;
+			maxangle_h = other.maxangle_h;
+			w = other.w;
+			h = other.h;
+			max_pitch = other.max_pitch;
+			m_oddscanline = other.m_oddscanline;
+			m_interlace = other.m_interlace;
+
+			return *this;
+		}
+
+		virtual ~Camera(){
 			SDL_DestroyTexture(screenspace_tx);
 		}
 
@@ -297,11 +312,7 @@ public:
 			}
 		}
 
-		void draw_frame(){
-			// Update the screen texture and draw it.
-			SDL_UpdateTexture(screenspace_tx, NULL, &screenspace_px[0], SCREEN_WIDTH * 4);
-			SDL_RenderCopy(rend, screenspace_tx, NULL, NULL);
-
+		void clear(){
 			// Set the entire screen buffer to a background color.
 			const byte_t fill[4] = { 0x10, 0x29, 0xad, 0xff }; // BGRA
 			for(int i = 0; i < (4 * SCREEN_WIDTH * SCREEN_HEIGHT); i++){
@@ -328,10 +339,88 @@ public:
 			m_oddscanline = !m_oddscanline;
 		}
 
-		void cache(){
+		virtual void draw_frame(){
+			// Update the screen texture and draw it.
+			SDL_UpdateTexture(screenspace_tx, NULL, &screenspace_px[0], SCREEN_WIDTH * 4);
+			SDL_RenderCopy(rend, screenspace_tx, NULL, NULL);
+
+			// Clear everything to prepare for the next frame.
+			clear();
+		}
+
+		virtual void cache(){
 			point_xz = point.angle_xz();
 			point_y = point.angle_y();
 		}
+	};
+
+	class MultiThreadCamera : public Camera {
+		static int const NUM_THREADS = 5;
+
+		// Camera for each thread.
+		Camera *m_pCams[NUM_THREADS] = {};
+
+	public:
+		MultiThreadCamera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle) :
+			Camera(rend, pos, point, w, h, maxangle)
+		{
+			for(auto i = 0; i < NUM_THREADS; ++ i){
+				m_pCams[i] = new Camera(rend, pos, point, w, h, maxangle);
+			}
+		}
+
+		virtual ~MultiThreadCamera(){
+			// Delete each thread camera.
+			for(auto i = 0; i < NUM_THREADS; ++ i)
+				delete m_pCams[i];
+		}
+
+		// Round-robin assignment of cameras.
+		Camera *nextThreadCam(){
+			static int index = 0;
+			Camera *c = m_pCams[index ++];
+
+			if(index >= NUM_THREADS)
+				index = 0;
+
+			return c;
+		}
+
+		// Merge all thread cameras screenspace_px, copy to our texture, and render.
+		void draw_frame() override {
+			for(auto i = 0; i < NUM_THREADS; ++ i){
+				Camera *c = m_pCams[i];
+
+				// Iterate over PX and ZB, assign PX if ZB is closer.
+				for(auto spit = 0; spit < (SCREEN_WIDTH * SCREEN_HEIGHT); ++ spit){
+					if(c->screenspace_zb[spit] < screenspace_zb[spit]){
+						screenspace_zb[spit] = c->screenspace_zb[spit];
+
+						// Is there a faster copy than this?
+						for(int ii = 0; ii < 4; ++ ii){
+							screenspace_px[spit * 4 + ii] = c->screenspace_px[spit * 4 + ii];
+						}
+					}
+				}
+
+				c->clear();
+			}
+
+			Camera::draw_frame();
+		}
+
+		void cache() override {
+			Camera::cache();
+
+			// Sync values to all thread cameras before draw.
+			for(auto i = 0; i < NUM_THREADS; ++ i){
+				Camera *c = m_pCams[i];
+
+				if(c)
+					*c = *this;
+			}
+		}
+
 	} *cam;
 
 	struct Renderable : public Drawable {
