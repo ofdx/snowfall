@@ -66,8 +66,8 @@ public:
 
 		double maxangle_w, maxangle_h;
 		int w, h;
-		vector<byte_t> screenspace_px;
-		vector<double> screenspace_zb;
+		byte_t screenspace_px[SCREEN_WIDTH * SCREEN_HEIGHT * 4];
+		double screenspace_zb[SCREEN_WIDTH * SCREEN_HEIGHT];
 		SDL_Texture *screenspace_tx;
 		SDL_Renderer *rend;
 
@@ -111,7 +111,7 @@ public:
 
 	public:
 		struct Shmem {
-			std::atomic<bool> m_alive, m_run, m_done;
+			std::atomic<bool> m_alive, m_run, m_done, m_clear;
 			Camera *m_cam;
 			list<Renderable*> *m_pMeshes;
 
@@ -303,15 +303,17 @@ Scene3D::Camera::Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h
 	point(point),
 	w(w),
 	h(h),
-	screenspace_px(SCREEN_WIDTH * SCREEN_HEIGHT * 4, 0),
-	screenspace_zb(SCREEN_WIDTH * SCREEN_HEIGHT, MAX_DRAW_DISTANCE),
 	rend(rend),
 	max_pitch(MAX_CAM_PITCH),
 	m_oddscanline(false), m_interlace(false),
 	m_wireframe(false)
 {
 	set_fov(maxangle);
+
+	memset((void*) screenspace_px, 0, (sizeof(byte_t) * SCREEN_WIDTH * SCREEN_HEIGHT * 4));
+	memset((void*) screenspace_zb, MAX_DRAW_DISTANCE, (sizeof(double) * SCREEN_WIDTH * SCREEN_HEIGHT));
 	screenspace_tx = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+
 	cache();
 }
 Scene3D::Camera Scene3D::Camera::operator = (Scene3D::Camera const& other){
@@ -413,27 +415,35 @@ void Scene3D::Camera::check_mouse(SDL_Event event){
 	}
 }
 void Scene3D::Camera::clear(){
-	// Set the entire screen buffer to a background color.
-	const byte_t fill[4] = { 0x10, 0x29, 0xad, 0xff }; // BGRA
-	for(int i = 0; i < (4 * SCREEN_WIDTH * SCREEN_HEIGHT); i++){
+	byte_t *r = nullptr;
+
+	for(int i = 0; i < SCREEN_HEIGHT; ++ i){
 		if(m_interlace){
-			int linemod = i % (4 * SCREEN_WIDTH * 2);
+			int const linemod = (i % 2);
 
 			if(!m_oddscanline){
-				if(linemod == 0){
-					i += (4 * SCREEN_WIDTH - 1);
+				if(!linemod){
 					continue;
 				}
-			} else if(linemod == (4 * SCREEN_WIDTH)){
-				i += (4 * SCREEN_WIDTH - 1);
+			} else if(linemod){
 				continue;
 			}
 		}
 
-		screenspace_px[i] = fill[i % 4];
+		// Clear z-buffer for this line.
+		memset(&screenspace_zb[i * SCREEN_WIDTH], MAX_DRAW_DISTANCE, sizeof(double) * SCREEN_WIDTH);
 
-		if(!(i % 4))
-			screenspace_zb[i / 4] = MAX_DRAW_DISTANCE;
+		// Clear screen on this line.
+		if(!r){
+			// Set the entire screen buffer to a background color.
+			byte_t const fill[4] = { 0x10, 0x29, 0xad, 0xff }; // BGRA
+
+			// Store a pointer to this line to copy from later.
+			r = &screenspace_px[i * SCREEN_WIDTH * 4];
+
+			for(int col = 0; col < SCREEN_WIDTH; ++ col)
+				memcpy(&r[col * 4], fill, 4);
+		} else memcpy(&screenspace_px[i * SCREEN_WIDTH * 4], r, (SCREEN_WIDTH * 4));
 	}
 
 	m_oddscanline = !m_oddscanline;
@@ -458,6 +468,7 @@ Scene3D::MultiThreadCamera::Shmem::Shmem(list<Scene3D::Renderable*> *pMeshes, Sc
 	m_alive(true),
 	m_run(false),
 	m_done(false),
+	m_clear(false),
 	m_cam(cam),
 	m_pMeshes(pMeshes)
 { }
@@ -476,9 +487,18 @@ Scene3D::MultiThreadCamera::MultiThreadCamera(SDL_Renderer *rend, Scene3D::coord
 	}
 }
 Scene3D::MultiThreadCamera::~MultiThreadCamera(){
-	// Delete each thread camera.
-	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i)
+	// Camera thread cleanup.
+	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
+		Shmem *mem = MtCamMem[i];
+
+		// Ask the thread to terminate.
+		mem->m_alive = false;
+		while(!mem->m_done) std::this_thread::yield();
+
+		// Clean up memory.
 		delete m_pCams[i];
+		delete mem;
+	}
 }
 Scene3D::Camera *Scene3D::MultiThreadCamera::nextThreadCam(){
 	// Round-robin assignment of cameras.
@@ -492,22 +512,20 @@ Scene3D::Camera *Scene3D::MultiThreadCamera::nextThreadCam(){
 }
 void Scene3D::MultiThreadCamera::draw_frame(){
 	// Start rendering threads
-	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
+	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i)
 		MtCamMem[i]->m_run = true;
-	}
 
 	// Draw any meshes which are on the parent camera (not assigned to a thread).
 	for(Renderable *mesh : *m_pMeshes)
 		mesh->draw_if_cam(0 /* ticks */, this);
 
-	// Wait for threads...
-	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
-		while(MtCamMem[i]->m_run) std::this_thread::yield();
-	}
-
 	// Merge all thread cameras screenspace_px
 	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
-		Camera *c = m_pCams[i];
+		MultiThreadCamera::Shmem *mem = MtCamMem[i];
+		Camera const *c = mem->m_cam;
+
+		// Wait for thread to complete drawing.
+		while(mem->m_run) std::this_thread::yield();
 
 		// Iterate over PX and ZB, assign PX if ZB is closer.
 		for(auto spit = 0; spit < (SCREEN_WIDTH * SCREEN_HEIGHT); ++ spit){
@@ -517,7 +535,8 @@ void Scene3D::MultiThreadCamera::draw_frame(){
 			}
 		}
 
-		c->clear();
+		// Have the render thread clear its own camera buffer.
+		mem->m_clear = true;
 	}
 
 	// Copy to our texture and render to the screen.
@@ -540,13 +559,17 @@ void mtCamWorker(int n){
 	while(mem->m_alive){
 		std::this_thread::yield();
 
-		if(mem->m_run){
-			if(mem->m_pMeshes){
-				for(Scene3D::Renderable *mesh : *mem->m_pMeshes)
-					mesh->draw_if_cam(0 /* ticks */, mem->m_cam);
-			}
+		// Clear the last frame.
+		if(mem->m_clear){
+			mem->m_cam->clear();
+			mem->m_clear = false;
+		}
 
-			// Done for now.
+		// Draw this frame.
+		if(mem->m_run){
+			for(Scene3D::Renderable *mesh : *mem->m_pMeshes)
+				mesh->draw_if_cam(0 /* ticks */, mem->m_cam);
+
 			mem->m_run = false;
 		}
 	}
