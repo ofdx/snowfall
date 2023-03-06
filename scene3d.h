@@ -153,7 +153,7 @@ public:
 		void set_color_fill(const byte_t &r, const byte_t &g, const byte_t &b, const byte_t &a);
 		void populateScreenspace();
 		void drawLine(const int &vert_a, const int &vert_b);
-		void draw_face(const Face &face);
+		void drawFace(const Face &face);
 		virtual void draw(int ticks) override;
 	};
 
@@ -764,12 +764,12 @@ void Scene3D::Mesh::drawLine(const int &vert_a, const int &vert_b){
 
 	// Try to ignore verts behind the camera.
 	{
-		double yaw_a = ((a - cam->pos).angle_xz() - cam->point_xz);
-		double yaw_b = ((b - cam->pos).angle_xz() - cam->point_xz);
+		double yaw_a = abs((a - cam->pos).angle_xz() - cam->point_xz);
+		double yaw_b = abs((b - cam->pos).angle_xz() - cam->point_xz);
 
 		if(
-			(abs(yaw_a) > (PI / 2) && abs(yaw_b) > cam->maxangle_w) ||
-			(abs(yaw_b) > (PI / 2) && abs(yaw_a) > cam->maxangle_w)
+			((yaw_a > (PI / 2)) && (yaw_b > cam->maxangle_w)) ||
+			((yaw_b > (PI / 2)) && (yaw_a > cam->maxangle_w))
 		)
 			return;
 	}
@@ -813,7 +813,7 @@ void Scene3D::Mesh::drawLine(const int &vert_a, const int &vert_b){
 		}
 	}
 }
-void Scene3D::Mesh::draw_face(const Scene3D::Mesh::Face &face){
+void Scene3D::Mesh::drawFace(const Scene3D::Mesh::Face &face){
 	resetScanlines();
 
 	// Draw the border, and build a set of pixel coordinates that
@@ -862,7 +862,7 @@ void Scene3D::Mesh::draw(int ticks){
 
 	// Sort faces by distance to the camera. Far faces are drawn first.
 	for(Face *face : faces)
-		draw_face(*face);
+		drawFace(*face);
 }
 
 Scene3D::~Scene3D()

@@ -678,7 +678,7 @@ public:
 	{
 		for(int i = 0; i < 8; ++ i){
 			for(int ii = 0; ii < 8; ++ ii){
-				sectors.push_back(new Sector(i, ii, 0, 1));
+				sectors.push_back(new Sector(i, ii, 0, ((ii*i) % 7) + 1));
 			}
 		}
 
