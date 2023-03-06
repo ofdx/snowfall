@@ -10,7 +10,7 @@
 
 #include <atomic>
 
-#define RAD_TO_DEG(r)      ((r) / PI * 180)
+#define RAD_TO_DEG(r)      ((r) / M_PI * 180)
 #define SQUARE(x)          ((x) * (x))
 #define MAX_DRAW_DISTANCE  100.0
 #define MAX_CAM_PITCH      0.35
@@ -170,11 +170,11 @@ protected:
 };
 
 double Scene3D::Radian::Normalize(double value){
-	while(value >= (2 * PI))
-		value -= (2 * PI);
+	while(value >= (2 * M_PI))
+		value -= (2 * M_PI);
 
 	while(value < 0)
-		value += (2 * PI);
+		value += (2 * M_PI);
 
 	return value;
 }
@@ -185,7 +185,7 @@ double Scene3D::Radian::operator + (const double &d) const {
 	return value + d;
 }
 double Scene3D::Radian::operator - (const Radian &other) const {
-	double reverse = Normalize(PI + other.value);
+	double reverse = Normalize(M_PI + other.value);
 	bool left = false;
 
 	if(reverse > other.value){
@@ -200,13 +200,13 @@ double Scene3D::Radian::operator - (const Radian &other) const {
 
 	if(left){
 		if(value > other.value)
-			return -(other.value + (2 * PI) - value);
+			return -(other.value + (2 * M_PI) - value);
 
 		return -(other.value - value);
 	}
 
 	if(value < other.value)
-		return ((2 * PI) - other.value + value);
+		return ((2 * M_PI) - other.value + value);
 
 	return (value - other.value);
 }
@@ -367,12 +367,12 @@ void Scene3D::Camera::pitch(const double &delta){
 	// Pitch the camera up or down the specified number of radians.
 	double y = point_y + delta;
 
-	if(y < PI){
+	if(y < M_PI){
 		if(y > max_pitch)
 			y = max_pitch;
 	} else {
-		if(y < ((2 * PI) - max_pitch))
-			y = ((2 * PI) - max_pitch);
+		if(y < ((2 * M_PI) - max_pitch))
+			y = ((2 * M_PI) - max_pitch);
 	}
 
 	point.y = sin(y) * sqrt(SQUARE(point.x) + SQUARE(point.y) + SQUARE(point.z));
@@ -768,8 +768,8 @@ void Scene3D::Mesh::drawLine(const int &vert_a, const int &vert_b){
 		double yaw_b = abs((b - cam->pos).angle_xz() - cam->point_xz);
 
 		if(
-			((yaw_a > (PI / 2)) && (yaw_b > cam->maxangle_w)) ||
-			((yaw_b > (PI / 2)) && (yaw_a > cam->maxangle_w))
+			((yaw_a > (M_PI / 2)) && (yaw_b > cam->maxangle_w)) ||
+			((yaw_b > (M_PI / 2)) && (yaw_a > cam->maxangle_w))
 		)
 			return;
 	}

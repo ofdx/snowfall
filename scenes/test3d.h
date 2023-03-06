@@ -352,7 +352,7 @@ public:
 
 		// Keyboard turning
 		{
-			double turn_speed = PI * ticks / 1000.0; // 180 degrees per second
+			double turn_speed = M_PI * ticks / 1000.0; // 180 degrees per second
 			int turn_dir = 0;
 
 			if(ctrl->keystate(SDLK_LEFT))
