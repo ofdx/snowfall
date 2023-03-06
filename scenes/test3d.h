@@ -225,6 +225,18 @@ public:
 						ss_log << " " << cam->m_interlace;
 					}
 
+					// Toggle wireframe overlay on 3D meshes.
+					else if(what == "wireframe"){
+						int val;
+						ss >> val;
+
+						if(ss){
+							cam->m_wireframe = !!val;
+						}
+
+						ss_log << " " << cam->m_wireframe;
+					}
+
 					// Fullscreen or windowed mode
 					else if(what == "fullscreen"){
 						bool val;

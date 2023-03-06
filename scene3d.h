@@ -74,6 +74,7 @@ public:
 		double max_pitch;
 
 		bool m_oddscanline, m_interlace;
+		bool m_wireframe;
 
 		Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle);
 		Camera operator = (Camera const& other);
@@ -306,7 +307,8 @@ Scene3D::Camera::Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h
 	screenspace_zb(SCREEN_WIDTH * SCREEN_HEIGHT, MAX_DRAW_DISTANCE),
 	rend(rend),
 	max_pitch(MAX_CAM_PITCH),
-	m_oddscanline(false), m_interlace(false)
+	m_oddscanline(false), m_interlace(false),
+	m_wireframe(false)
 {
 	set_fov(maxangle);
 	screenspace_tx = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -325,6 +327,7 @@ Scene3D::Camera Scene3D::Camera::operator = (Scene3D::Camera const& other){
 	max_pitch = other.max_pitch;
 	m_oddscanline = other.m_oddscanline;
 	m_interlace = other.m_interlace;
+	m_wireframe = other.m_wireframe;
 
 	return *this;
 }
@@ -509,12 +512,8 @@ void Scene3D::MultiThreadCamera::draw_frame(){
 		// Iterate over PX and ZB, assign PX if ZB is closer.
 		for(auto spit = 0; spit < (SCREEN_WIDTH * SCREEN_HEIGHT); ++ spit){
 			if(c->screenspace_zb[spit] < screenspace_zb[spit]){
+				memcpy(&screenspace_px[spit * 4], &c->screenspace_px[spit * 4], 4);
 				screenspace_zb[spit] = c->screenspace_zb[spit];
-
-				// Is there a faster copy than this?
-				for(int ii = 0; ii < 4; ++ ii){
-					screenspace_px[spit * 4 + ii] = c->screenspace_px[spit * 4 + ii];
-				}
 			}
 		}
 
@@ -790,6 +789,17 @@ void Scene3D::Mesh::drawLine(const int &vert_a, const int &vert_b){
 
 	for(int i = 1; i <= step; i++){
 		pixel px = cam->vertex_screenspace(a + (coord_step * i));
+
+		// Paint wireframe
+		if(cam->m_wireframe){
+			if((px.x >= 0) && (px.y >= 0) && (px.x < SCREEN_WIDTH) && (px.y < SCREEN_HEIGHT)){
+				unsigned int const offset = (SCREEN_WIDTH * px.y + px.x);
+				const byte_t color[4] = { 0, 0, 0, 0xff };
+
+				memcpy(&cam->screenspace_px[offset * 4], color, 4);
+				cam->screenspace_zb[offset] = 0; /* always on top */
+			}
+		}
 
 		if(px.y > y_max)
 			y_max = px.y;
