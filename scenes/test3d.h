@@ -102,8 +102,8 @@ void TestScene3D::receive_data(string const& data){
 					player_data *data = player_data_read();
 
 					if(data){
-						cam->pos = (coord){ data->x, data->y, data->z };
-						cam->point = (coord){ data->point_x, data->point_y, data->point_z };
+						cam->m_pos = (coord){ data->x, data->y, data->z };
+						cam->m_point = (coord){ data->point_x, data->point_y, data->point_z };
 					} else {
 						// FIXME debug
 						cout << "Failed to load player data!" << endl;
@@ -115,8 +115,8 @@ void TestScene3D::receive_data(string const& data){
 						"krak",
 						"",
 						1, 2,
-						cam->pos.x, cam->pos.y, cam->pos.z,
-						cam->point.x, cam->point.y, cam->point.z
+						cam->m_pos.x, cam->m_pos.y, cam->m_pos.z,
+						cam->m_point.x, cam->m_point.y, cam->m_point.z
 					};
 
 					player_data_save(&data);
@@ -131,7 +131,7 @@ void TestScene3D::receive_data(string const& data){
 			if(ss){
 				ss_log << " " << what;
 
-				// Toggle camera debug information (pos, point, fps)
+				// Toggle camera debug information (m_pos, point, fps)
 				if(what == "cam"){
 
 					string item;
@@ -160,25 +160,25 @@ void TestScene3D::receive_data(string const& data){
 							ss >> x >> y >> z;
 
 							if(ss)
-								cam->pos = (coord){ .x = x, .y = y, .z = z };
+								cam->m_pos = (coord){ .x = x, .y = y, .z = z };
 
-							ss_log << " " << cam->pos.x << " " << cam->pos.y << " " << cam->pos.z;
+							ss_log << " " << cam->m_pos.x << " " << cam->m_pos.y << " " << cam->m_pos.z;
 						} else if(item == "point"){
 							double x, y, z;
 							ss >> x >> y >> z;
 
 							if(ss)
-								cam->point = (coord){ .x = x, .y = y, .z = z };
+								cam->m_point = (coord){ .x = x, .y = y, .z = z };
 
-							ss_log << " " << cam->point.x << " " << cam->point.y << " " << cam->point.z;
+							ss_log << " " << cam->m_point.x << " " << cam->m_point.y << " " << cam->m_point.z;
 						} else if(item == "pitch-max"){
 							double angle;
 							ss >> angle;
 
 							if(ss)
-								cam->max_pitch = abs(angle);
+								cam->m_max_pitch = abs(angle);
 
-							ss_log << " " << cam->max_pitch;
+							ss_log << " " << cam->m_max_pitch;
 						} else if(item == "fov"){
 							double fov;
 							ss >> fov;
@@ -373,7 +373,7 @@ void TestScene3D::draw(int ticks){
 		if(risefall){
 			risefall *= (ticks * walk_speed);
 
-			cam->pos.y += risefall;
+			cam->m_pos.y += risefall;
 		}
 	}
 
@@ -424,10 +424,10 @@ void TestScene3D::draw(int ticks){
 		stringstream ss;
 
 		Scene3D::Radian
-			rpy(atan2(cam->point.y, sqrt(cam->point.z * cam->point.z + cam->point.x * cam->point.x))),
-			rpxz(atan2(cam->point.z, cam->point.x));
+			rpy(atan2(cam->m_point.y, sqrt(cam->m_point.z * cam->m_point.z + cam->m_point.x * cam->m_point.x))),
+			rpxz(atan2(cam->m_point.z, cam->m_point.x));
 
-		ss << "c_pos: " << cam->pos.display() << endl;
+		ss << "c_pos: " << cam->m_pos.display() << endl;
 		ss << "c_pnt: (" << RAD_TO_DEG(rpxz.getValue()) << ", " << RAD_TO_DEG(rpy.getValue()) << ")" << endl;
 
 		if(ticks){

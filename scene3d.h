@@ -26,7 +26,7 @@ class Scene3D : public Scene {
 public:
 
 	class Radian {
-		double value;
+		double m_value;
 
 	public:
 		static double Normalize(double value);
@@ -58,20 +58,21 @@ public:
 	};
 
 	class Camera : public Clickable {
-		bool mlook_active = false;
+		bool m_mlook_active = false;
 
 	public:
-		coord pos, point;
-		Radian point_xz = 0, point_y = 0;
+		coord m_pos, m_point;
+		Radian m_point_xz = 0, m_point_y = 0;
 
-		double maxangle_w, maxangle_h;
-		int w, h;
-		byte_t screenspace_px[SCREEN_WIDTH * SCREEN_HEIGHT * 4];
-		double screenspace_zb[SCREEN_WIDTH * SCREEN_HEIGHT];
-		SDL_Texture *screenspace_tx;
-		SDL_Renderer *rend;
+		double m_maxangle_w, m_maxangle_h;
+		int m_w, m_h;
 
-		double max_pitch;
+		byte_t m_screenspace_px[SCREEN_WIDTH * SCREEN_HEIGHT * 4];
+		double m_screenspace_zb[SCREEN_WIDTH * SCREEN_HEIGHT];
+		SDL_Texture *m_screenspace_tx;
+		SDL_Renderer *m_rend;
+
+		double m_max_pitch;
 
 		bool m_oddscanline, m_interlace;
 		bool m_wireframe;
@@ -80,16 +81,16 @@ public:
 		Camera operator = (Camera const& other);
 		virtual ~Camera();
 
-		void set_fov(double maxangle);
-		double get_fov();
+		void set_fov(double const maxangle);
+		double get_fov() const;
 
 		pixel vertex_screenspace(const coord &vertex) const;
-		void yaw(const double &delta);
-		void pitch(const double &delta);
-		void walk(const double &distance);
-		void mlook(const bool &active);
+		void yaw(double const& delta);
+		void pitch(double const& delta);
+		void walk(double const& distance);
+		void mlook(bool const active);
 		bool mlook_toggle();
-		virtual void check_mouse(SDL_Event event);
+		virtual void check_mouse(SDL_Event event) override;
 		void clear();
 		virtual void draw_frame();
 		virtual void cache();
@@ -180,39 +181,39 @@ double Scene3D::Radian::Normalize(double value){
 	return value;
 }
 Scene3D::Radian::Radian(double value){
-	this->value = Normalize(value);
+	m_value = Normalize(value);
 }
 double Scene3D::Radian::operator + (const double &d) const {
-	return value + d;
+	return m_value + d;
 }
 double Scene3D::Radian::operator - (const Radian &other) const {
-	double reverse = Normalize(M_PI + other.value);
+	double reverse = Normalize(M_PI + other.m_value);
 	bool left = false;
 
-	if(reverse > other.value){
+	if(reverse > other.m_value){
 		// Left is on the outside.
-		if((value <= other.value) || (value > reverse))
+		if((m_value <= other.m_value) || (m_value > reverse))
 			left = true;
 	} else {
 		// Left is on the inside.
-		if((value <= other.value) && (value > reverse))
+		if((m_value <= other.m_value) && (m_value > reverse))
 			left = true;
 	}
 
 	if(left){
-		if(value > other.value)
-			return -(other.value + (2 * M_PI) - value);
+		if(m_value > other.m_value)
+			return -(other.m_value + (2 * M_PI) - m_value);
 
-		return -(other.value - value);
+		return -(other.m_value - m_value);
 	}
 
-	if(value < other.value)
-		return ((2 * M_PI) - other.value + value);
+	if(m_value < other.m_value)
+		return ((2 * M_PI) - other.m_value + m_value);
 
-	return (value - other.value);
+	return (m_value - other.m_value);
 }
 inline double Scene3D::Radian::getValue() const {
-	return value;
+	return m_value;
 }
 
 
@@ -299,34 +300,34 @@ string Scene3D::coord::display() const {
 
 Scene3D::Camera::Camera(SDL_Renderer *rend, coord pos, coord point, int w, int h, double maxangle) :
 	Clickable(),
-	pos(pos),
-	point(point),
-	w(w),
-	h(h),
-	rend(rend),
-	max_pitch(MAX_CAM_PITCH),
+	m_pos(pos),
+	m_point(point),
+	m_w(w),
+	m_h(h),
+	m_rend(rend),
+	m_max_pitch(MAX_CAM_PITCH),
 	m_oddscanline(false), m_interlace(false),
 	m_wireframe(false)
 {
 	set_fov(maxangle);
 
-	memset((void*) screenspace_px, 0, (sizeof(byte_t) * SCREEN_WIDTH * SCREEN_HEIGHT * 4));
-	memset((void*) screenspace_zb, MAX_DRAW_DISTANCE, (sizeof(double) * SCREEN_WIDTH * SCREEN_HEIGHT));
-	screenspace_tx = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+	memset((void*) m_screenspace_px, 0, (sizeof(byte_t) * SCREEN_WIDTH * SCREEN_HEIGHT * 4));
+	memset((void*) m_screenspace_zb, MAX_DRAW_DISTANCE, (sizeof(double) * SCREEN_WIDTH * SCREEN_HEIGHT));
+	m_screenspace_tx = SDL_CreateTexture(m_rend, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	cache();
 }
 Scene3D::Camera Scene3D::Camera::operator = (Scene3D::Camera const& other){
-	mlook_active = other.mlook_active;
-	pos = other.pos;
-	point = other.point;
-	point_xz = other.point_xz;
-	point_y = other.point_y;
-	maxangle_w = other.maxangle_w;
-	maxangle_h = other.maxangle_h;
-	w = other.w;
-	h = other.h;
-	max_pitch = other.max_pitch;
+	m_mlook_active = other.m_mlook_active;
+	m_pos = other.m_pos;
+	m_point = other.m_point;
+	m_point_xz = other.m_point_xz;
+	m_point_y = other.m_point_y;
+	m_maxangle_w = other.m_maxangle_w;
+	m_maxangle_h = other.m_maxangle_h;
+	m_w = other.m_w;
+	m_h = other.m_h;
+	m_max_pitch = other.m_max_pitch;
 	m_oddscanline = other.m_oddscanline;
 	m_interlace = other.m_interlace;
 	m_wireframe = other.m_wireframe;
@@ -334,76 +335,76 @@ Scene3D::Camera Scene3D::Camera::operator = (Scene3D::Camera const& other){
 	return *this;
 }
 Scene3D::Camera::~Camera(){
-	SDL_DestroyTexture(screenspace_tx);
+	SDL_DestroyTexture(m_screenspace_tx);
 }
-void Scene3D::Camera::set_fov(double maxangle){
-	maxangle_w = maxangle_h = maxangle;
+void Scene3D::Camera::set_fov(double const maxangle){
+	m_maxangle_w = m_maxangle_h = maxangle;
 
 	// Give whichever direction is smaller a lesser FOV.
-	if(w > h){
-		maxangle_h = maxangle_h / w * h;
-	} else if (h > w){
-		maxangle_w = maxangle_w / h * w;
+	if(m_w > m_h){
+		m_maxangle_h = m_maxangle_h / m_w * m_h;
+	} else if (m_h > m_w){
+		m_maxangle_w = m_maxangle_w / m_h * m_w;
 	}
 }
-double Scene3D::Camera::get_fov(){
-	return ((maxangle_w > maxangle_h) ? maxangle_w : maxangle_h);
+double Scene3D::Camera::get_fov() const {
+	return ((m_maxangle_w > m_maxangle_h) ? m_maxangle_w : m_maxangle_h);
 }
 Scene3D::pixel Scene3D::Camera::vertex_screenspace(const Scene3D::coord &vertex) const {
 	// Get the x,y coordinates of a pixel on screen to represent this visible vertex.
-	coord rel = vertex - pos;
+	coord rel = vertex - m_pos;
 
-	double yaw = (rel.angle_xz() - point_xz);
-	double pitch = (rel.angle_y() - point_y);
+	double yaw = (rel.angle_xz() - m_point_xz);
+	double pitch = (rel.angle_y() - m_point_y);
 
 	return (pixel){
-		x: w - (int)((w / 2) + (yaw / (2 * maxangle_w) * w)),
-		y: h - (int)((h / 2) + (pitch / (2 * maxangle_h) * h))
+		x: m_w - (int)((m_w / 2) + (yaw / (2 * m_maxangle_w) * m_w)),
+		y: m_h - (int)((m_h / 2) + (pitch / (2 * m_maxangle_h) * m_h))
 	};
 }
-void Scene3D::Camera::yaw(const double &delta){
+void Scene3D::Camera::yaw(double const& delta){
 	// Turn the camera the specified number of radians around the Y-axis.
-	double xz = point_xz + delta;
+	double const xz = m_point_xz + delta;
 
-	point = (coord){ cos(xz), point.y, sin(xz) };
+	m_point = (coord){ cos(xz), m_point.y, sin(xz) };
 	cache();
 }
-void Scene3D::Camera::pitch(const double &delta){
+void Scene3D::Camera::pitch(double const& delta){
 	// Pitch the camera up or down the specified number of radians.
-	double y = point_y + delta;
+	double y = m_point_y + delta;
 
 	if(y < M_PI){
-		if(y > max_pitch)
-			y = max_pitch;
+		if(y > m_max_pitch)
+			y = m_max_pitch;
 	} else {
-		if(y < ((2 * M_PI) - max_pitch))
-			y = ((2 * M_PI) - max_pitch);
+		if(y < ((2 * M_PI) - m_max_pitch))
+			y = ((2 * M_PI) - m_max_pitch);
 	}
 
-	point.y = sin(y) * sqrt(SQUARE(point.x) + SQUARE(point.y) + SQUARE(point.z));
+	m_point.y = sin(y) * sqrt(SQUARE(m_point.x) + SQUARE(m_point.y) + SQUARE(m_point.z));
 	cache();
 }
-void Scene3D::Camera::walk(const double &distance){
-	double heading = point_xz.getValue();
+void Scene3D::Camera::walk(double const& distance){
+	double heading = m_point_xz.getValue();
 
-	pos += (coord){ distance * cos(heading), 0, distance * sin(heading) };
+	m_pos += (coord){ distance * cos(heading), 0, distance * sin(heading) };
 	cache();
 }
-void Scene3D::Camera::mlook(const bool &active){
-	if(mlook_active != active)
+void Scene3D::Camera::mlook(bool const active){
+	if(m_mlook_active != active)
 		SDL_SetRelativeMouseMode(active ? SDL_TRUE : SDL_FALSE);
 
-	mlook_active = active;
+	m_mlook_active = active;
 }
 bool Scene3D::Camera::mlook_toggle(){
-	mlook(!mlook_active);
+	mlook(!m_mlook_active);
 
-	return mlook_active;
+	return m_mlook_active;
 }
 void Scene3D::Camera::check_mouse(SDL_Event event){
 	switch(event.type){
 		case SDL_MOUSEMOTION:
-			if(mlook_active){
+			if(m_mlook_active){
 				yaw(-(event.motion.xrel / (16.0 * render_scale)));
 				pitch(-(event.motion.yrel / (40.0 * render_scale)));
 			}
@@ -431,7 +432,7 @@ void Scene3D::Camera::clear(){
 		}
 
 		// Clear z-buffer for this line.
-		memset(&screenspace_zb[i * SCREEN_WIDTH], MAX_DRAW_DISTANCE, sizeof(double) * SCREEN_WIDTH);
+		memset(&m_screenspace_zb[i * SCREEN_WIDTH], MAX_DRAW_DISTANCE, sizeof(double) * SCREEN_WIDTH);
 
 		// Clear screen on this line.
 		if(!r){
@@ -439,26 +440,26 @@ void Scene3D::Camera::clear(){
 			byte_t const fill[4] = { 0x10, 0x29, 0xad, 0xff }; // BGRA
 
 			// Store a pointer to this line to copy from later.
-			r = &screenspace_px[i * SCREEN_WIDTH * 4];
+			r = &m_screenspace_px[i * SCREEN_WIDTH * 4];
 
 			for(int col = 0; col < SCREEN_WIDTH; ++ col)
 				memcpy(&r[col * 4], fill, 4);
-		} else memcpy(&screenspace_px[i * SCREEN_WIDTH * 4], r, (SCREEN_WIDTH * 4));
+		} else memcpy(&m_screenspace_px[i * SCREEN_WIDTH * 4], r, (SCREEN_WIDTH * 4));
 	}
 
 	m_oddscanline = !m_oddscanline;
 }
 void Scene3D::Camera::draw_frame(){
 	// Update the screen texture and draw it.
-	SDL_UpdateTexture(screenspace_tx, NULL, &screenspace_px[0], SCREEN_WIDTH * 4);
-	SDL_RenderCopy(rend, screenspace_tx, NULL, NULL);
+	SDL_UpdateTexture(m_screenspace_tx, NULL, &m_screenspace_px[0], SCREEN_WIDTH * 4);
+	SDL_RenderCopy(m_rend, m_screenspace_tx, NULL, NULL);
 
 	// Clear everything to prepare for the next frame.
 	clear();
 }
 void Scene3D::Camera::cache(){
-	point_xz = point.angle_xz();
-	point_y = point.angle_y();
+	m_point_xz = m_point.angle_xz();
+	m_point_y = m_point.angle_y();
 }
 
 
@@ -479,7 +480,7 @@ Scene3D::MultiThreadCamera::MultiThreadCamera(SDL_Renderer *rend, Scene3D::coord
 {
 	for(auto i = 0; i < NUM_RENDER_THREADS; ++ i){
 		// Create camera and its shared memory.
-		MtCamMem[i] = new Shmem(m_pMeshes, (m_pCams[i] = new Camera(rend, pos, point, w, h, maxangle)));
+		MtCamMem[i] = new Shmem(m_pMeshes, (m_pCams[i] = new Camera(m_rend, m_pos, m_point, m_w, m_h, maxangle)));
 
 		// Create camera worker thread.
 		std::thread worker(mtCamWorker, i);
@@ -529,9 +530,9 @@ void Scene3D::MultiThreadCamera::draw_frame(){
 
 		// Iterate over PX and ZB, assign PX if ZB is closer.
 		for(auto spit = 0; spit < (SCREEN_WIDTH * SCREEN_HEIGHT); ++ spit){
-			if(c->screenspace_zb[spit] < screenspace_zb[spit]){
-				memcpy(&screenspace_px[spit * 4], &c->screenspace_px[spit * 4], 4);
-				screenspace_zb[spit] = c->screenspace_zb[spit];
+			if(c->m_screenspace_zb[spit] < m_screenspace_zb[spit]){
+				memcpy(&m_screenspace_px[spit * 4], &c->m_screenspace_px[spit * 4], 4);
+				m_screenspace_zb[spit] = c->m_screenspace_zb[spit];
 			}
 		}
 
@@ -579,7 +580,7 @@ void mtCamWorker(int n){
 }
 
 Scene3D::Renderable::Renderable(Scene3D::Camera *cam) :
-	Drawable(cam->rend),
+	Drawable(cam->m_rend),
 	cam(cam)
 {}
 void Scene3D::Renderable::draw_if_cam(int ticks, Scene3D::Camera const *refCam){
@@ -786,12 +787,12 @@ void Scene3D::Mesh::drawLine(const int &vert_a, const int &vert_b){
 
 	// Try to ignore verts behind the camera.
 	{
-		double yaw_a = abs((a - cam->pos).angle_xz() - cam->point_xz);
-		double yaw_b = abs((b - cam->pos).angle_xz() - cam->point_xz);
+		double yaw_a = abs((a - cam->m_pos).angle_xz() - cam->m_point_xz);
+		double yaw_b = abs((b - cam->m_pos).angle_xz() - cam->m_point_xz);
 
 		if(
-			((yaw_a > (M_PI / 2)) && (yaw_b > cam->maxangle_w)) ||
-			((yaw_b > (M_PI / 2)) && (yaw_a > cam->maxangle_w))
+			((yaw_a > (M_PI / 2)) && (yaw_b > cam->m_maxangle_w)) ||
+			((yaw_b > (M_PI / 2)) && (yaw_a > cam->m_maxangle_w))
 		)
 			return;
 	}
@@ -819,8 +820,8 @@ void Scene3D::Mesh::drawLine(const int &vert_a, const int &vert_b){
 				unsigned int const offset = (SCREEN_WIDTH * px.y + px.x);
 				const byte_t color[4] = { 0, 0, 0, 0xff };
 
-				memcpy(&cam->screenspace_px[offset * 4], color, 4);
-				cam->screenspace_zb[offset] = 0; /* always on top */
+				memcpy(&cam->m_screenspace_px[offset * 4], color, 4);
+				cam->m_screenspace_zb[offset] = 0; /* always on top */
 			}
 		}
 
@@ -878,12 +879,12 @@ void Scene3D::Mesh::drawFace(const Scene3D::Mesh::Face &face){
 			for(int x = bounds.x; x < bounds.y; x++){
 				if((x >= 0) && (line >= 0) && (x < SCREEN_WIDTH) && (line < SCREEN_HEIGHT)){
 					const unsigned int offset = (SCREEN_WIDTH * line + x);
-					double distance = cam->pos.distance_to(coord_left + (coord_delta * (x - bounds.x)));
+					double distance = cam->m_pos.distance_to(coord_left + (coord_delta * (x - bounds.x)));
 
 					// Draw this pixel if there isn't already one in front of it.
-					if(distance < cam->screenspace_zb[offset]){
-						memcpy(&cam->screenspace_px[offset * 4], face.fill, 4);
-						cam->screenspace_zb[offset] = distance;
+					if(distance < cam->m_screenspace_zb[offset]){
+						memcpy(&cam->m_screenspace_px[offset * 4], face.fill, 4);
+						cam->m_screenspace_zb[offset] = distance;
 					}
 				}
 			}
